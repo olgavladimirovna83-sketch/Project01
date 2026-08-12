@@ -3,7 +3,7 @@
 **Обновлено:** 12 августа 2026
 
 ## Текущая фаза
-**Phase 0 — Project Foundation: завершена** (Task 0.1–0.6). Переход к **Phase 1 — Database Foundation** (Task 1.1). Критерий Task 0.6 «deploy в staging» сознательно отложен — продуктовое решение Olga (`DECISIONS.md`, D-0007), не блокирует Phase 1.
+**Phase 0 — Project Foundation: завершена** (Task 0.1–0.6). **Phase 1 — Database Foundation: Task 1.1 завершена.** Критерий Task 0.6 «deploy в staging» сознательно отложен — продуктовое решение Olga (`DECISIONS.md`, D-0007), не блокирует Phase 1.
 
 ## Завершено
 - Полная архитектурная и продуктовая спецификация (45 документов в `/docs`)
@@ -18,14 +18,14 @@
 - Task 0.4: `.github/workflows/ci.yml` — GitHub Actions pipeline на `pull_request`/`push` в `main`: `npm ci` → `npx prisma generate` → `npm run lint` → `npx tsc --noEmit` → `npm run build`. Все шаги проверены локально перед коммитом (lint — 0 warnings, build — успешен). Required status checks / branch protection на GitHub НЕ настроены — нет `gh` CLI и доступа к репозиторию в этом окружении, нужна ручная настройка Olga (см. «В работе»)
 - D-0006: репозиторий перенесён на новый GitHub-аккаунт `olgavladimirovna83-sketch`, проект `Project01` (RED-действие, выполнено лично Olga; старый репозиторий `Olgavladimirovna83-create/Application` сохранён как резервный, не удалён)
 - Task 0.5: тестовый фреймворк инициализирован — Vitest (`vitest.config.ts`, `tests/unit/`) и Playwright (`playwright.config.ts`, `tests/e2e/`), по одному smoke-тесту на каждый. `package.json`: `test`/`test:watch`/`test:e2e`. CI (`.github/workflows/ci.yml`) расширен шагами `npm test` и `npx playwright install --with-deps chromium` + `npm run test:e2e`. Проверено локально и подтверждено зелёным в GitHub Actions
-- **Task 0.6: Phase 0 закрыта по всем локально проверяемым критериям (`42_IMPLEMENTATION_ROADMAP.md` §4) — запуск, тесты, сборка, безопасная конфигурация. Критерий «deploy в staging» отложен продуктовым решением Olga (`DECISIONS.md`, D-0007), перенесён в Backlog `TASKS.md`**
+- Task 0.6: Phase 0 закрыта по всем локально проверяемым критериям (`42_IMPLEMENTATION_ROADMAP.md` §4) — запуск, тесты, сборка, безопасная конфигурация. Критерий «deploy в staging» отложен продуктовым решением Olga (`DECISIONS.md`, D-0007), перенесён в Backlog `TASKS.md`
+- **Task 1.1: `prisma/schema.prisma` — 10 core-моделей (User, Goal, Content, ContentFeature, PerformanceMetric, Pattern, Memory, Recommendation, UserDecision, Experiment) + 5 enum (см. `DECISIONS.md`, D-0008 по scope и enum/String правилу). Postgres.app установлен и инициализирован Olga локально (порт 5432, trust auth); подключение — через Unix socket `/tmp` (TCP/localhost упирается в permission-dialog Postgres.app). `DATABASE_URL` записан в реальный `.env` (не в git). Миграция `20260812142954_init_core_entities` применена на dev-базе `olga`; чистый rollback/reapply подтверждён на отдельной одноразовой базе (создана и удалена только для проверки — база `olga` не тронута). `npx tsc --noEmit`/`npm run lint`/`npm run build`/`npm test` — без ошибок**
 
 ## В работе
-- Task 1.1 — схема Prisma для core entities (Phase 1). Требует локального живого PostgreSQL — на момент начала не установлен (см. «Текущее окружение»).
-- (Backlog, не блокирует Phase 1) Реальные staging/production ресурсы (Vercel, Neon, Upstash, R2) и branch protection для `main` — см. Backlog в `TASKS.md`, D-0007.
+Ничего технического — Task 1.1 полностью завершена и верифицирована. (Backlog, не блокирует Phase 1): реальные staging/production ресурсы (Vercel, Neon, Upstash, R2) и branch protection для `main` — см. Backlog в `TASKS.md`, D-0007.
 
 ## Заблокировано
-Task 1.1 (миграции) — нет локального PostgreSQL и нет Homebrew в этом окружении, чтобы его поставить. Требуется действие Olga (см. «Текущее окружение»).
+Нет
 
 ## Известные проблемы / отложено (не блокирует Phase 0)
 - `06_RECOMMENDATION_ENGINE.md` считается superseded от `13_RECOMMENDATION_ENGINE.md`
@@ -35,7 +35,7 @@ Task 1.1 (миграции) — нет локального PostgreSQL и нет
 - `npm audit`: 3 high severity — транзитивные `postcss`/`sharp` через Next.js 15. Фикс требует мажорного апгрейда до Next.js 16 (`npm audit fix --force`), это не выполнено автоматически — решение об апгрейде откладывается, не блокирует Phase 0 (`DECISIONS.md`, D-0005; подтверждено ChatGPT при review завершения Task 0.2)
 
 ## Текущее окружение
-Node.js v24.19.0 / npm 11.17.0 установлены (Olga, вручную через официальный установщик). Репозиторий: `github.com/olgavladimirovna83-sketch/Project01` (`origin/main`, см. D-0006). Зависимости установлены, dev-сервер и оба тестовых раннера верифицированы локально (CI подтверждён зелёным). PostgreSQL и Homebrew **не установлены** в этом окружении (`psql`/`brew` — command not found) — нужны для Task 1.1 (миграции требуют живой БД). Staging / production облачная инфраструктура сознательно отложена (D-0007).
+Node.js v24.19.0 / npm 11.17.0 установлены (Olga, вручную через официальный установщик). Репозиторий: `github.com/olgavladimirovna83-sketch/Project01` (`origin/main`, см. D-0006). PostgreSQL — Postgres.app, локально, порт 5432, база `olga` (по имени пользователя), trust auth, подключение через Unix socket. Зависимости установлены, dev-сервер, оба тестовых раннера и Prisma-миграции верифицированы локально (CI подтверждён зелёным). Staging / production облачная инфраструктура сознательно отложена (D-0007).
 
 ## Следующая рекомендованная задача
-Task 1.1 — схема Prisma для core entities. Заблокирована отсутствием локального PostgreSQL: нужно установить Homebrew (агент не бутстрапит его сам — `curl | bash` из недоверенного к выполнению агентом источника, см. переписку при установке Node), затем `brew install postgresql@16`. Как только Homebrew появится, дальнейшую установку Postgres агент может выполнить сам.
+Дальнейшие задачи Phase 1 (repositories/data-access слой поверх новых моделей, дополнительные сущности из `25_DATABASE_SCHEMA.md` §62 по мере необходимости — `ExternalAccount`, `Baseline`, `Hypothesis` и т.д., см. `DECISIONS.md` D-0008) добавляются в `TASKS.md` по мере продвижения.

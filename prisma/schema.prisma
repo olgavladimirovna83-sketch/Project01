@@ -7,5 +7,249 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Сущности (User, Goal, Content, ...) добавляются в Task 1.1 —
-// см. TASKS.md, 18_DATA_MODEL.md, 22_DATA_MODEL.md, 25_DATABASE_SCHEMA.md.
+// Task 1.1 — core entities MVP-версии Data Model (18_DATA_MODEL.md §45,
+// зеркалирует TASKS.md): User, Goal, Content, ContentFeature,
+// PerformanceMetric, Pattern, Memory, Recommendation, UserDecision,
+// Experiment. Поля — по 25_DATABASE_SCHEMA.md. Остальные сущности из
+// более широкого MVP_DATABASE (§62 того же документа — ExternalAccount,
+// Baseline, RecommendationReason/Candidate, Action, Outcome, Hypothesis,
+// Event и т.д.) сознательно не реализованы в этой задаче — добавляются
+// постепенно в следующих задачах Phase 1, без разрушающих миграций для
+// уже созданных таблиц.
+//
+// Поля open-ended категоризации (goalType, contentType, patternType,
+// featureType, metricType, memoryType-подобные штуки, где docs явно
+// требуют расширяемости без миграции — см. 25_DATABASE_SCHEMA.md §57)
+// — String, не enum. Enum используется только для реально закрытых,
+// зафиксированных в доках наборов состояний (статусы, decision type).
+//
+// NULL vs 0: там, где документ явно требует различать "значение 0" и
+// "данные недоступны" (§56), числовое поле — nullable.
+
+enum PatternDirection {
+  positive
+  negative
+}
+
+enum PatternStatus {
+  hypothesis
+  emerging
+  confirmed
+  strong
+  declining
+  inactive
+}
+
+enum MemoryType {
+  fact
+  pattern
+  preference
+  decision
+  lesson
+  hypothesis
+}
+
+enum RecommendationStatus {
+  generated
+  shown
+  accepted
+  rejected
+  modified
+  postponed
+  completed
+  expired
+}
+
+enum UserDecisionType {
+  accepted
+  rejected
+  modified
+  deferred
+  alternative_selected
+}
+
+model User {
+  id           String    @id @default(cuid())
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  lastActiveAt DateTime? @map("last_active_at")
+  status       String    @default("active")
+  timezone     String?
+  locale       String?
+
+  goals           Goal[]
+  content         Content[]
+  patterns        Pattern[]
+  memories        Memory[]
+  recommendations Recommendation[]
+  decisions       UserDecision[]
+
+  @@map("users")
+}
+
+model Goal {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  goalType  String   @map("goal_type")
+  priority  Int      @default(0)
+  status    String   @default("active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recommendations Recommendation[]
+  experiments     Experiment[]
+
+  @@index([userId])
+  @@map("goals")
+}
+
+model Content {
+  id        String    @id @default(cuid())
+  userId    String    @map("user_id")
+  // Плейсхолдер-поля до появления отдельной сущности ExternalAccount
+  // (25_DATABASE_SCHEMA.md §7, вне scope Task 1.1) — не relation, просто
+  // строковые значения от внешней платформы.
+  externalAccountId String?   @map("external_account_id")
+  externalContentId String?   @map("external_content_id")
+  contentType       String    @map("content_type")
+  status            String    @default("published")
+  publishedAt       DateTime? @map("published_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  user               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  features           ContentFeature[]
+  performanceMetrics PerformanceMetric[]
+
+  @@unique([externalAccountId, externalContentId])
+  @@index([userId])
+  @@index([publishedAt])
+  @@map("content")
+}
+
+model ContentFeature {
+  id              String   @id @default(cuid())
+  contentId       String   @map("content_id")
+  featureType     String   @map("feature_type")
+  featureValue    String   @map("feature_value")
+  confidence      Float?
+  source          String?
+  analysisVersion String?  @map("analysis_version")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  content Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@index([contentId])
+  @@map("content_features")
+}
+
+model PerformanceMetric {
+  id         String   @id @default(cuid())
+  contentId  String   @map("content_id")
+  metricType String   @map("metric_type")
+  // Nullable, не 0 — "данные недоступны" ≠ "измеренное значение 0"
+  // (25_DATABASE_SCHEMA.md §56).
+  value      Int?
+  measuredAt DateTime @map("measured_at")
+  source     String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  content Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@index([contentId])
+  @@index([measuredAt])
+  @@map("performance_metrics")
+}
+
+model Pattern {
+  id              String           @id @default(cuid())
+  userId          String           @map("user_id")
+  patternType     String           @map("pattern_type")
+  description     String
+  direction       PatternDirection
+  strength        Float?
+  confidence      Float?
+  status          PatternStatus    @default(hypothesis)
+  firstDetectedAt DateTime         @default(now()) @map("first_detected_at")
+  lastConfirmedAt DateTime?        @map("last_confirmed_at")
+  lastUpdatedAt   DateTime         @updatedAt @map("last_updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("patterns")
+}
+
+model Memory {
+  id         String     @id @default(cuid())
+  userId     String     @map("user_id")
+  memoryType MemoryType @map("memory_type")
+  content    String
+  confidence Float?
+  source     String?
+  status     String     @default("active")
+  createdAt  DateTime   @default(now()) @map("created_at")
+  updatedAt  DateTime   @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("memory")
+}
+
+model Recommendation {
+  id               String               @id @default(cuid())
+  userId           String               @map("user_id")
+  goalId           String               @map("goal_id")
+  primaryCandidate String               @map("primary_candidate")
+  confidence       Float?
+  status           RecommendationStatus @default(generated)
+  decisionVersion  String?              @map("decision_version")
+  createdAt        DateTime             @default(now()) @map("created_at")
+  expiresAt        DateTime?            @map("expires_at")
+
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  goal      Goal           @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  decisions UserDecision[]
+
+  @@index([userId])
+  @@index([goalId])
+  @@map("recommendations")
+}
+
+model UserDecision {
+  id                String           @id @default(cuid())
+  recommendationId  String           @map("recommendation_id")
+  userId            String           @map("user_id")
+  decisionType      UserDecisionType @map("decision_type")
+  selectedCandidate String?          @map("selected_candidate")
+  comment           String?
+  createdAt         DateTime         @default(now()) @map("created_at")
+
+  recommendation Recommendation @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([recommendationId])
+  @@index([userId])
+  @@map("user_decisions")
+}
+
+model Experiment {
+  id          String    @id @default(cuid())
+  // Плейсхолдер до появления сущности Hypothesis (вне scope Task 1.1) —
+  // не relation.
+  hypothesisId String?   @map("hypothesis_id")
+  goalId       String    @map("goal_id")
+  description  String
+  status       String    @default("planned")
+  startedAt    DateTime? @map("started_at")
+  completedAt  DateTime? @map("completed_at")
+  result       String?
+  conclusion   String?
+
+  goal Goal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  @@index([goalId])
+  @@map("experiments")
+}

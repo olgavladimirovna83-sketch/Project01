@@ -49,6 +49,7 @@
 **Цель:** миграции Prisma для User, Goal, Content, ContentFeature, PerformanceMetric, Pattern, Memory, Recommendation, UserDecision, Experiment.
 **Спецификация:** `18_DATA_MODEL.md`, `22_DATA_MODEL.md`, `25_DATABASE_SCHEMA.md`.
 **Готово, когда:** миграции применяются и откатываются чисто, связи соответствуют data model.
+**Статус:** Завершена. `prisma/schema.prisma` — 10 моделей + 5 enum (см. `DECISIONS.md`, D-0008 по поводу scope и enum/String правила). Миграция `20260812142954_init_core_entities` применена и провалидирована на локальном PostgreSQL (Postgres.app): `prisma migrate dev` — применена на dev-базе `olga`; чистый rollback/reapply подтверждён через `prisma migrate reset` на отдельной одноразовой базе `project_bootstrap_migration_check` (создана и удалена только для этой проверки, база `olga` не тронута). `npx tsc --noEmit`, `npm run lint`, `npm run build`, `npm test` — без ошибок после изменений.
 
 *(остальные задачи Phase 1+ добавляются по мере продвижения — весь backlog заранее не расписывается, чтобы не рассинхронизироваться с реальностью)*
 

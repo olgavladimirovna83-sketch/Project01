@@ -22,6 +22,8 @@
 - Task 0.5: Vitest (`vitest.config.ts`, `tests/unit/ai-service.smoke.test.ts`) и Playwright (`playwright.config.ts`, `tests/e2e/home.spec.ts`) — по одному smoke-тесту на фреймворк; `package.json` scripts `test`/`test:watch`/`test:e2e`
 - Task 0.5: `.gitignore` — исключены артефакты Playwright (`/test-results/`, `/playwright-report/`, `/blob-report/`, `/playwright/.cache/`)
 - Task 0.6: Phase 0 закрыта — все локально проверяемые критерии `42_IMPLEMENTATION_ROADMAP.md` §4 подтверждены
+- Task 1.1: `prisma/schema.prisma` — 10 core-моделей (User, Goal, Content, ContentFeature, PerformanceMetric, Pattern, Memory, Recommendation, UserDecision, Experiment) и 5 enum (`PatternDirection`, `PatternStatus`, `MemoryType`, `RecommendationStatus`, `UserDecisionType`); первая миграция `20260812142954_init_core_entities`
+- `.env` (реальный, не в git) — `DATABASE_URL` для локального Postgres.app через Unix socket
 
 ### Changed
 - D-0001 пересмотрено: исходное решение принято без систематической проверки, переделано по 10-пунктному чек-листу с построчным чтением всех 46 документов
@@ -49,6 +51,11 @@
 - Task 0.6 закрыт по всем локально проверяемым критериям; критерий «deploy в staging» перенесён в Backlog `TASKS.md`
 - **Phase 0 — Project Foundation считается завершённым**
 
+### Changed (D-0008 — scope Task 1.1: 10 сущностей, не 18-таблиц MVP_DATABASE)
+- Task 1.1 реализует ровно 10-сущностный список из `TASKS.md`/`18_DATA_MODEL.md` §45, а не более широкий 18-таблиц список из `25_DATABASE_SCHEMA.md` §62 — обоснование в `DECISIONS.md`
+- `ExternalAccount`/`Hypothesis` представлены как nullable-строковые поля без `@relation` (`Content.externalAccountId`/`externalContentId`, `Experiment.hypothesisId`) — переживут появление реальных таблиц как аддитивная миграция
+- Правило enum vs String зафиксировано: открытые категории (`goalType`, `contentType`, `patternType`, `featureType`, `metricType`) — `String`; закрытые наборы состояний (`PatternStatus`, `PatternDirection`, `MemoryType`, `RecommendationStatus`, `UserDecisionType`) — Prisma `enum`
+
 ### Verified (Task 0.2)
 - Node.js v24.19.0 / npm 11.17.0 установлены Olga вручную (официальный установщик)
 - `npm install` — 373 пакета без ошибок; `npx prisma generate` — клиент сгенерирован
@@ -66,10 +73,17 @@
 - `npx tsc --noEmit` и `npm run lint` повторно проверены после добавления тестовых файлов/конфигов — без ошибок
 - CI на GitHub Actions подтверждён зелёным Olga (push после Task 0.5)
 
+### Verified (Task 1.1)
+- PostgreSQL: Postgres.app установлен и инициализирован Olga локально; подключение проверено через `psql` и через Prisma (`prisma db execute`) по Unix socket (`/tmp`) — TCP/`localhost` упирается в permission-dialog Postgres.app, требующий разового GUI-подтверждения
+- `npx prisma validate` — схема валидна
+- `npx prisma migrate dev --name init_core_entities` — применена на dev-базе `olga`, создано 10 таблиц + FK/индексы
+- Rollback/reapply: `npx prisma migrate reset --force` (gated самим Prisma как AI-agent dangerous action — потребовал явного согласия Olga) выполнен на отдельной одноразовой базе `project_bootstrap_migration_check`, не на `olga`; после проверки база удалена, `olga` не тронута
+- `npx tsc --noEmit`, `npm run lint`, `npm run build`, `npm test` — без ошибок после изменения схемы
+
 ### Known issues
 - `npm audit`: 3 high severity — транзитивные `postcss`/`sharp` через Next.js 15; фикс требует мажорного апгрейда до Next.js 16, не выполнен автоматически (решение об апгрейде — отдельно, не блокирует Phase 0; см. `DECISIONS.md`, D-0005)
 - `next lint` помечен deprecated, будет удалён в Next.js 16 — при будущем апгрейде (см. пункт выше) потребуется миграция на ESLint CLI напрямую (`npx @next/codemod@canary next-lint-to-eslint-cli .`)
 - Реальные staging/production ресурсы (Vercel, Neon, Upstash, R2) сознательно не созданы — продуктовое решение Olga, см. `DECISIONS.md` D-0007, Backlog в `TASKS.md`
 - Task 0.4: required status checks / branch protection для `main` не настроены — нет `gh` CLI и это repo-настройка, которую агент не включает самостоятельно (см. CURRENT_STATUS.md)
 - `vitest.config.ts` при запуске выводит предупреждение о будущей смене дефолтного `configLoader` в Vite (ESM-конфиг, загружаемый как CommonJS) — не ошибка, не блокирует тесты, безопасно отложить
-- Task 1.1 (Phase 1): нет локального PostgreSQL и нет Homebrew в текущем окружении Claude Code — блокирует прогон миграций, см. CURRENT_STATUS.md
+- Более широкий набор таблиц из `25_DATABASE_SCHEMA.md` §62 (`ExternalAccount`, `Baseline`, `Hypothesis`, `Action`, `Outcome`, `Event` и т.д.) не реализован в Task 1.1 — сознательный scope-выбор, см. `DECISIONS.md` D-0008; реализуется по мере необходимости в следующих задачах Phase 1+
