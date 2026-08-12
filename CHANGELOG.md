@@ -44,6 +44,9 @@
 - Task 2.3: `tests/e2e/helpers/auth.ts` — общий `registerAndLogin`/`uniqueEmail` helper для e2e-тестов
 - Task 2.3: `tests/e2e/goal-authorization.spec.ts` — ownership-check на `Goal` через реальный браузер (401 без сессии, owner читает свой goal, чужой пользователь получает 404 неотличимо от несуществующего id)
 - Task 3.0: `INSTAGRAM_API_REVIEW.md` — письменное резюме технической проверки Instagram/Meta Graph API (permissions, token lifecycle, доступные метрики, rate limits, webhooks) перед реализацией Integration Service; research-only, без создания Meta developer-аккаунта
+- Task 3.1: `src/integrations/IntegrationProvider.ts` — контракт `ExternalIntegration`-адаптеров (authorize URL, code exchange, refresh, account/media insights, best-effort disconnect), `IntegrationAuthError`/`IntegrationRateLimitError` как разные типы ошибок
+- Task 3.1: `src/integrations/IntegrationService.ts` — domain-facing фасад на registry (`registerIntegrationProvider`)
+- Task 3.1: `src/integrations/index.ts` — публичные экспорты модуля
 
 ### Fixed
 - `INSTAGRAM_API_REVIEW.md` §3: исправлен вывод о permissions после того, как Olga лично прошла реальную авторизацию Instagram — insights оказался отдельным разрешением от `instagram_business_basic`, не его частью, как предполагала исходная версия резюме. Подтверждённый набор: `instagram_business_basic` + insights, comments/messages/content-publish осознанно отключены
