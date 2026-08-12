@@ -77,14 +77,75 @@ model User {
   timezone     String?
   locale       String?
 
+  // Task 2.1 — Auth.js (App Authentication, CLAUDE.md §3.2/§4.1). email/
+  // emailVerified/name/image — стандартные поля, ожидаемые Auth.js Prisma
+  // adapter'ом (имена полей заданы контрактом адаптера, не менять).
+  // passwordHash — наше собственное поле для Credentials provider
+  // (email+password), не часть стандартного контракта адаптера.
+  email         String?   @unique
+  emailVerified DateTime? @map("email_verified")
+  name          String?
+  image         String?
+  passwordHash  String?   @map("password_hash")
+
   goals           Goal[]
   content         Content[]
   patterns        Pattern[]
   memories        Memory[]
   recommendations Recommendation[]
   decisions       UserDecision[]
+  accounts        Account[]
+  sessions        Session[]
 
   @@map("users")
+}
+
+// Account/Session/VerificationToken — стандартная схема Auth.js Prisma
+// adapter (https://authjs.dev/getting-started/adapters/prisma), проверена
+// по актуальной документации перед реализацией (Task 2.1, DECISIONS.md
+// D-0009). Имена полей на Account (refresh_token, access_token, expires_at,
+// token_type, id_token, session_state) заданы контрактом адаптера буквально
+// как snake_case Prisma-поля, а не только DB-колонки — сознательное
+// отступление от camelCase-конвенции остальной схемы, не опечатка.
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
 }
 
 model Goal {

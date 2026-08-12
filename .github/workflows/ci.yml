@@ -30,6 +30,10 @@ jobs:
       # Real Postgres service above — tests/integration/** needs a live DB
       # with migrations applied (see the "Apply migrations" step below).
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+      # Not a real secret — NextAuth() is constructed at module-eval time
+      # when the auth route is loaded (e.g. during build), so it must be
+      # present. CI never performs real sign-ins with this value.
+      AUTH_SECRET: ci-only-not-a-real-secret-ansdj28dksla92
 
     steps:
       - uses: actions/checkout@v4

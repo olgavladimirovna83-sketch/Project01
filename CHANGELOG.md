@@ -27,6 +27,13 @@
 - Task 1.2: `src/data/repositories/` — по одному репозиторию (`create`/`findById`/`update`) на каждую из 10 сущностей
 - Task 1.2: `tests/integration/` (новая папка) — `user-data-flow.smoke.test.ts`, Phase 1 completion smoke test (`42_IMPLEMENTATION_ROADMAP.md` §8): создать user → сохранить данные → получить обратно
 - Task 1.2: `.github/workflows/ci.yml` — `postgres:16` service-контейнер + шаг `prisma migrate deploy`, чтобы интеграционные тесты реально гонялись в CI
+- Task 2.1: `prisma/schema.prisma` расширен под Auth.js — модели `Account`/`Session`/`VerificationToken` + поля `email`/`emailVerified`/`name`/`image`/`passwordHash` на `User`; миграция `20260812163141_auth_js_foundation`
+- Task 2.1: `src/auth/` — `config.ts` (`NextAuth()` + `PrismaAdapter`, JWT session strategy), `credentials.ts` (`authenticateWithCredentials`), `password.ts` (`bcryptjs`-хеширование), `types.d.ts` (module augmentation), `README.md`
+- Task 2.1: `src/app/api/auth/[...nextauth]/route.ts` — Auth.js route handler
+- Task 2.1: `src/data/repositories/userRepository.ts` — добавлен `findByEmail`
+- Task 2.1: `tests/integration/auth-credentials.smoke.test.ts` — smoke-тест `authenticateWithCredentials` против живой БД
+- Task 2.1: `.github/workflows/ci.yml` дополнен `AUTH_SECRET` (CI-only значение, не реальный секрет)
+- D-0009: механизм аутентификации MVP — Credentials (email+password), выбран чтобы не создавать RED-зависимость от внешнего email-сервиса (по ограничению Olga)
 
 ### Changed
 - D-0001 пересмотрено: исходное решение принято без систематической проверки, переделано по 10-пунктному чек-листу с построчным чтением всех 46 документов

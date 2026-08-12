@@ -200,3 +200,24 @@
 **⚠️ Явная зарубка на будущее (не забыть).** Перед стартом **Phase 7 (Knowledge Layer)** и **Phase 8 (Recommendation Engine)** — свериться с `22_DATA_MODEL.md` §54 и добавить недостающие 5 сущностей в схему: **Baseline, Hypothesis, RecommendationReason (отдельно от Recommendation), Action, Outcome**. Это аддитивные миграции (новые таблицы), не переработка существующих 10 моделей.
 
 **Последствия:** более широкий набор таблиц (`ExternalAccount`, `Baseline`, `PatternEvidence`, `RecommendationCandidate`, `RecommendationReason`, `Action`, `Outcome`, `Hypothesis`, `Event` и т.д.) реализуется в последующих задачах Phase 1+, по мере того как в них появляется практическая необходимость (в первую очередь — Phase 7/8, см. зарубку выше; отдельно Instagram sync потребует ExternalAccount раньше, в Phase 3). Это не пересмотр архитектуры — `25_DATABASE_SCHEMA.md` и `22_DATA_MODEL.md` остаются источником истины по полям этих сущностей/таблиц, когда до них дойдёт очередь.
+
+---
+
+## D-0009 — Task 2.1: механизм аутентификации MVP — Credentials (email+password), не OAuth/magic link
+
+**Дата:** 12 августа 2026
+**Статус:** Принято (YELLOW — техническая развилка, явно делегированная Olga на этап реализации `30_SECURITY_PRIVACY.md` §6, с одним заранее заданным ограничением)
+
+**Контекст.** `30_SECURITY_PRIVACY.md` §6 не фиксирует конкретный механизм аутентификации для MVP («OAuth; token-based authentication; passwordless authentication... Конкретный механизм определяется на этапе реализации»). Перед началом Task 2.1 Olga заранее задала ограничение: если выбранный механизм требует внешнего email-сервиса для отправки писем (magic link, email-верификация — например через Resend, SendGrid) — это создание нового внешнего аккаунта/авторизации, то есть **RED** по той же логике, что уже применялась к смене GitHub-аккаунта (D-0006) и к облачной инфраструктуре Vercel/Neon/Upstash/R2 (D-0007): агент обязан остановиться и спросить, не создавать такой аккаунт самостоятельно.
+
+**Решение.** Реализован **Credentials provider** (email + password, `next-auth` v5 / Auth.js) — не OAuth, не magic link, не email-верификация. Обоснование:
+- Не требует никакого внешнего сервиса (email-провайдера, OAuth-провайдера) и, соответственно, не создаёт RED-ситуацию с новым внешним аккаунтом — прямое следствие ограничения, заданного Olga.
+- Полностью реализуется существующим стеком (`next-auth`, `@auth/prisma-adapter`, `bcryptjs` для хеширования паролей) без новых внешних зависимостей.
+- Соответствует духу `30_SECURITY_PRIVACY.md` §6–9: пароли не хранятся в открытом виде (`bcryptjs`, 12 salt rounds), проверка — на backend (`authenticateWithCredentials`), не доверяется frontend.
+- Ограничение: Credentials provider несовместим с database-сессиями Auth.js (Prisma adapter не пишет сессии для Credentials-логина по архитектуре Auth.js) — используется **JWT session strategy** (`session: { strategy: 'jwt' }`). Это верифицировано через актуальную документацию authjs.dev (WebFetch на момент реализации), а не только по памяти — учитывая, что схема аутентификации критична для security, ошибка в этом месте дорого стоит.
+- `PrismaAdapter(prisma)` в `src/auth/config.ts` — единственное осознанное исключение из правила «только `prismaClient.ts` работает с `@prisma/client` напрямую» (CLAUDE.md §3.1/§4.1): контракт стороннего адаптера Auth.js требует передать ему сырой `PrismaClient`-инстанс, это не наш обычный data-access паттерн и не повод создавать сквозной доступ к Prisma в другом коде.
+- Поле `passwordHash` на модели `User` — наше собственное поле, не часть контракта `@auth/prisma-adapter` (в отличие от `email`/`emailVerified`/`name`/`image`, которые заданы контрактом адаптера буквально).
+
+**Явно не входит в Task 2.1** (см. `TASKS.md`): UI/API для registration/login/logout, account recovery, authorization/roles, полный HTTP sign-in flow (issuance cookie-based JWT-сессии в браузере) — только сама техническая основа (schema + `authenticateWithCredentials` + Auth.js конфигурация), проверенная integration-тестом уровня функции, не уровня HTTP.
+
+**Последствия.** Registration/login UI (следующие задачи Phase 2) будет собирать email+password напрямую, без redirect на внешний OAuth-провайдер и без email-верификации на этом этапе. Если в будущем потребуется magic link, email-верификация или OAuth (Google/etc.) — это отдельная задача, которая снова столкнётся с тем же RED-ограничением (внешний email-сервис или OAuth-провайдер = новый внешний аккаунт) и потребует отдельного разрешения Olga, а не тихого добавления провайдера. Password reset (обычно требует email) в Phase 2 пока не расписан по той же причине — будет отдельной задачей, когда до неё дойдёт очередь, и снова возможной RED-точкой.
