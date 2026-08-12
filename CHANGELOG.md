@@ -21,6 +21,7 @@
 - Task 0.4: `.github/workflows/ci.yml` — GitHub Actions pipeline (`pull_request`/`push` на `main`): `npm ci` → `npx prisma generate` → `npm run lint` → `npx tsc --noEmit` → `npm run build`
 - Task 0.5: Vitest (`vitest.config.ts`, `tests/unit/ai-service.smoke.test.ts`) и Playwright (`playwright.config.ts`, `tests/e2e/home.spec.ts`) — по одному smoke-тесту на фреймворк; `package.json` scripts `test`/`test:watch`/`test:e2e`
 - Task 0.5: `.gitignore` — исключены артефакты Playwright (`/test-results/`, `/playwright-report/`, `/blob-report/`, `/playwright/.cache/`)
+- Task 0.6: Phase 0 закрыта — все локально проверяемые критерии `42_IMPLEMENTATION_ROADMAP.md` §4 подтверждены
 
 ### Changed
 - D-0001 пересмотрено: исходное решение принято без систематической проверки, переделано по 10-пунктному чек-листу с построчным чтением всех 46 документов
@@ -43,6 +44,11 @@
 - Старый репозиторий сохранён как резервный, не удалён; старый credential в Keychain не тронут
 - `README.md`/`ENVIRONMENTS.md` проверены на захардкоженные ссылки на старый репозиторий — не найдено
 
+### Deferred (D-0007 — облачная инфраструктура)
+- Реальные staging/production ресурсы (Vercel, Neon, Upstash, R2) сознательно отложены — продуктовое решение Olga, не техническое ограничение
+- Task 0.6 закрыт по всем локально проверяемым критериям; критерий «deploy в staging» перенесён в Backlog `TASKS.md`
+- **Phase 0 — Project Foundation считается завершённым**
+
 ### Verified (Task 0.2)
 - Node.js v24.19.0 / npm 11.17.0 установлены Olga вручную (официальный установщик)
 - `npm install` — 373 пакета без ошибок; `npx prisma generate` — клиент сгенерирован
@@ -58,10 +64,12 @@
 - `npx playwright install chromium` — браузер установлен
 - `npm run test:e2e` (Playwright, Chromium) — 1 passed
 - `npx tsc --noEmit` и `npm run lint` повторно проверены после добавления тестовых файлов/конфигов — без ошибок
+- CI на GitHub Actions подтверждён зелёным Olga (push после Task 0.5)
 
 ### Known issues
 - `npm audit`: 3 high severity — транзитивные `postcss`/`sharp` через Next.js 15; фикс требует мажорного апгрейда до Next.js 16, не выполнен автоматически (решение об апгрейде — отдельно, не блокирует Phase 0; см. `DECISIONS.md`, D-0005)
 - `next lint` помечен deprecated, будет удалён в Next.js 16 — при будущем апгрейде (см. пункт выше) потребуется миграция на ESLint CLI напрямую (`npx @next/codemod@canary next-lint-to-eslint-cli .`)
-- Task 0.3 не завершена полностью: реальные staging/production ресурсы (Vercel, Neon, Upstash, R2) не созданы — требуют доступа Olga к внешним дашбордам, вне возможностей Claude Code сессии
+- Реальные staging/production ресурсы (Vercel, Neon, Upstash, R2) сознательно не созданы — продуктовое решение Olga, см. `DECISIONS.md` D-0007, Backlog в `TASKS.md`
 - Task 0.4: required status checks / branch protection для `main` не настроены — нет `gh` CLI и это repo-настройка, которую агент не включает самостоятельно (см. CURRENT_STATUS.md)
 - `vitest.config.ts` при запуске выводит предупреждение о будущей смене дефолтного `configLoader` в Vite (ESM-конфиг, загружаемый как CommonJS) — не ошибка, не блокирует тесты, безопасно отложить
+- Task 1.1 (Phase 1): нет локального PostgreSQL и нет Homebrew в текущем окружении Claude Code — блокирует прогон миграций, см. CURRENT_STATUS.md
