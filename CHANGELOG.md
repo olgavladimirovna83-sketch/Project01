@@ -49,6 +49,7 @@
 - Task 2.2: `src/auth/config.ts` — добавлен `pages: { signIn: '/login' }`
 - Task 2.3: `src/app/api/me/route.ts` отрефакторен на `requireSessionUserId()` (без изменения поведения)
 - Task 2.3: `tests/e2e/auth-flow.spec.ts` — использует общий helper из `tests/e2e/helpers/auth.ts` вместо локальных дублей
+- **Phase 2 — Authentication закрыта** (решение Olga, 12 августа 2026) на объёме Task 2.1–2.3 — критерий `42_IMPLEMENTATION_ROADMAP.md` §11 подтверждён тестами; account recovery/password reset и role model сознательно вне MVP-scope, см. `TASKS.md`
 - D-0001 пересмотрено: исходное решение принято без систематической проверки, переделано по 10-пунктному чек-листу с построчным чтением всех 46 документов
 - CLAUDE.md: добавлена иерархия документации (ранняя волна 04–16 vs поздняя 17–46), обновлён стек (object storage, observability)
 
