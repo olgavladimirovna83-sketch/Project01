@@ -1,5 +1,6 @@
-import { expect, type Page, test } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { prisma } from '../../src/data/prismaClient';
+import { makeUniqueEmailFactory, registerAndLogin } from './helpers/auth';
 
 /**
  * Task 2.2 — закрывает пробел, явно оставленный в Task 2.1: полный HTTP
@@ -13,6 +14,7 @@ import { prisma } from '../../src/data/prismaClient';
  */
 
 const createdEmails: string[] = [];
+const uniqueEmail = makeUniqueEmailFactory(createdEmails);
 
 test.afterAll(async () => {
   if (createdEmails.length > 0) {
@@ -20,20 +22,6 @@ test.afterAll(async () => {
   }
   await prisma.$disconnect();
 });
-
-function uniqueEmail(prefix: string): string {
-  const email = `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.test`;
-  createdEmails.push(email);
-  return email;
-}
-
-async function registerAndLogin(page: Page, email: string, password: string): Promise<void> {
-  await page.goto('/register');
-  await page.getByLabel('Email').fill(email);
-  await page.getByLabel('Пароль').fill(password);
-  await page.getByRole('button', { name: 'Создать аккаунт' }).click();
-  await expect(page.getByText(`Вы вошли как ${email}`)).toBeVisible();
-}
 
 test.describe('registration / login / logout — full HTTP session cycle', () => {
   test('register issues a real session cookie readable by /api/me, logout invalidates it', async ({

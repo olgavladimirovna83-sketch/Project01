@@ -39,10 +39,16 @@
 - Task 2.2: `src/app/login/page.tsx`, `src/app/register/page.tsx`, `src/app/_components/LogoutButton.tsx` — UI для входа/регистрации/выхода
 - Task 2.2: `tests/e2e/auth-flow.spec.ts` — полный HTTP session cycle через реальный браузер (issuance/чтение cookie-based JWT-сессии, logout-инвалидация, user isolation на двух независимых аккаунтах) — закрывает пробел, оставленный в Task 2.1
 - Task 2.2: `tests/integration/auth-registration.smoke.test.ts` — `registerUser` против живой БД
+- Task 2.3: `src/auth/session.ts` — `requireSessionUserId()`, общая точка получения user id из сессии
+- Task 2.3: `src/app/api/goals/route.ts` (`POST`), `src/app/api/goals/[id]/route.ts` (`GET`) — первый ownership-protected resource за пределами `User`
+- Task 2.3: `tests/e2e/helpers/auth.ts` — общий `registerAndLogin`/`uniqueEmail` helper для e2e-тестов
+- Task 2.3: `tests/e2e/goal-authorization.spec.ts` — ownership-check на `Goal` через реальный браузер (401 без сессии, owner читает свой goal, чужой пользователь получает 404 неотличимо от несуществующего id)
 
 ### Changed
 - Task 2.2: `src/app/page.tsx` — стал async server component, показывает logged-in/logged-out состояние через `auth()`
 - Task 2.2: `src/auth/config.ts` — добавлен `pages: { signIn: '/login' }`
+- Task 2.3: `src/app/api/me/route.ts` отрефакторен на `requireSessionUserId()` (без изменения поведения)
+- Task 2.3: `tests/e2e/auth-flow.spec.ts` — использует общий helper из `tests/e2e/helpers/auth.ts` вместо локальных дублей
 - D-0001 пересмотрено: исходное решение принято без систематической проверки, переделано по 10-пунктному чек-листу с построчным чтением всех 46 документов
 - CLAUDE.md: добавлена иерархия документации (ранняя волна 04–16 vs поздняя 17–46), обновлён стек (object storage, observability)
 

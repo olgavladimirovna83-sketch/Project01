@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/auth/config';
+import { requireSessionUserId } from '@/auth/session';
 import { userRepository } from '@/data/repositories';
 
 export async function GET() {
-  const session = await auth();
-  const userId = session?.user?.id;
+  const userId = await requireSessionUserId();
 
   if (!userId) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
