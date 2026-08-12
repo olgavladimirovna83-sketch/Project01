@@ -26,6 +26,15 @@ const API_VERSION = process.env.INSTAGRAM_API_VERSION ?? 'v25.0';
 const AUTHORIZE_URL = 'https://www.instagram.com/oauth/authorize';
 const CODE_EXCHANGE_URL = 'https://api.instagram.com/oauth/access_token';
 const GRAPH_BASE = `https://graph.instagram.com/${API_VERSION}`;
+// Обмен на long-lived и refresh — БЕЗ версии в пути (INSTAGRAM_API_REVIEW.md
+// §2/§4 документирует их как https://graph.instagram.com/access_token и
+// /refresh_access_token, в отличие от версионированных data-endpoints вроде
+// /v25.0/me и /v25.0/{id}/insights). Найдено при перепроверке реализации
+// после того, как "Session key invalid" воспроизвёлся на заведомо свежем
+// токене (Task 3.2) — до этого оба использовали версионированный GRAPH_BASE
+// по ошибке.
+const LONG_LIVED_EXCHANGE_URL = 'https://graph.instagram.com/access_token';
+const REFRESH_TOKEN_URL = 'https://graph.instagram.com/refresh_access_token';
 
 // Подтверждено Olga через реальную авторизацию (TASKS.md, Task 3.0
 // addendum): instagram_business_basic + отдельное insights-разрешение.
@@ -111,7 +120,7 @@ async function fetchOwnIgUserId(accessToken: string): Promise<string> {
  * вызывающей стороной, не только этой функцией.
  */
 export async function exchangeForLongLivedToken(accessToken: string): Promise<IntegrationTokens> {
-  const url = new URL(`${GRAPH_BASE}/access_token`);
+  const url = new URL(LONG_LIVED_EXCHANGE_URL);
   url.searchParams.set('grant_type', 'ig_exchange_token');
   url.searchParams.set('client_secret', requiredEnv('INSTAGRAM_APP_SECRET'));
   url.searchParams.set('access_token', accessToken);
@@ -168,7 +177,7 @@ export function createInstagramProvider(): IntegrationProvider {
     },
 
     async refreshTokens(tokens: IntegrationTokens): Promise<IntegrationTokens> {
-      const url = new URL(`${GRAPH_BASE}/refresh_access_token`);
+      const url = new URL(REFRESH_TOKEN_URL);
       url.searchParams.set('grant_type', 'ig_refresh_token');
       url.searchParams.set('access_token', tokens.accessToken);
 
