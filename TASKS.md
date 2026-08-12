@@ -66,6 +66,17 @@
 
 ---
 
+## Phase 2 — Authentication (следующее после Phase 1)
+
+### Task 2.1 — Auth.js: техническая основа (schema + конфигурация)
+**Цель:** подключить Auth.js для **App Authentication** (не Instagram Integration — это принципиально разные слои, CLAUDE.md §3.2/§4.1). Расширить `prisma/schema.prisma` под Auth.js (`Account`, `Session`, `VerificationToken` + auth-поля на существующей модели `User` — email, password hash и т.п., в зависимости от выбранного механизма). Настроить базовый Auth.js route handler и session strategy с Prisma adapter. **Не входит в эту задачу:** UI/API для registration/login/logout, account recovery, authorization/roles — отдельные последующие задачи, не расписываются заранее.
+**Спецификация:** `42_IMPLEMENTATION_ROADMAP.md` §9–11 (Phase 2: registration/login/logout/session management/password requirements/account recovery; Phase 2 completion criterion — «создать account → войти → получить доступ только к своим данным»); `CLAUDE.md` §3.2/§4/§4.1 (App Authentication ≠ Instagram Integration, Auth.js — выбранный инструмент); `30_SECURITY_PRIVACY.md` §6–9 (authentication mechanisms, passwords, session security, authorization).
+**Готово, когда:** миграция под auth-таблицы применяется и откатывается чисто (как в Task 1.1); Auth.js может создать и прочитать сессию для тестового пользователя (integration smoke-тест по аналогии с Task 1.2); конкретный auth-механизм для MVP выбран и явно задокументирован как решение в `DECISIONS.md` — `30_SECURITY_PRIVACY.md` §6 прямо оставляет этот выбор («OAuth; token-based authentication; passwordless authentication... Конкретный механизм определяется на этапе реализации»).
+
+*(остальные задачи Phase 2 — сама реализация registration/login/logout, account recovery, authorization/roles — добавляются по мере продвижения, не расписываются заранее)*
+
+---
+
 ## Phase 3 — предварительное условие (зафиксировано по итогам review, D-0003)
 
 ### Task 3.0 — Техническая проверка Instagram/Meta Graph API
