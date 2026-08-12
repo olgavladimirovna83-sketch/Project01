@@ -103,6 +103,13 @@ export interface IntegrationAccountInsightsParams {
   accessToken: string;
   metrics: string[];
   period: string;
+  /** Найдено при реализации Task 3.2 (не было известно на момент Task 3.0):
+   * большинство account-level метрик, кроме `reach`, требуют явный
+   * `metric_type=total_value` — иначе API отвечает ошибкой. `reach` — по-прежнему
+   * работает и без него (легаси time_series поведение). Провайдер передаёт
+   * это значение как есть, если оно задано; на вызывающей стороне решать,
+   * какой metric_type нужен для конкретных метрик. */
+  metricType?: 'total_value' | 'time_series';
 }
 
 export interface IntegrationListMediaParams {

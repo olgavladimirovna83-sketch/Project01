@@ -11,7 +11,7 @@
 - `decision/` — DECISION layer / Decision Engine (наполняется после Phase 1)
 - `ai/` — AI layer: `AIProvider` интерфейс, `AIService` (AI_SERVICE), `providers/anthropic.ts` (AI_PROVIDER_ADAPTER — единственный файл с прямым импортом `@anthropic-ai/sdk`)
 - `storage/` — `ObjectStorageService`: интерфейс + `providers/r2.ts` (единственный файл с прямым импортом AWS S3 SDK)
-- `integrations/` — `ExternalIntegration` adapters (CLAUDE.md §4.1): `IntegrationProvider` интерфейс + `IntegrationService`, спроектированы по итогам Task 3.0 (`INSTAGRAM_API_REVIEW.md`); конкретный `providers/instagram.ts` — следующий шаг
+- `integrations/` — `ExternalIntegration` adapters (CLAUDE.md §4.1): `IntegrationProvider` интерфейс + `IntegrationService` (Task 3.1), конкретный `providers/instagram.ts` (Task 3.2) — единственный файл с прямым обращением к `api.instagram.com`/`graph.instagram.com`
 - `learning/` — LEARNING layer (наполняется после MVP recommendation flow)
 
 Правило границ: domain-код (`analysis/`, `knowledge/`, `decision/`) импортирует `ai`, `storage`, `data` только через их `index.ts`/публичный интерфейс — никогда провайдерские файлы (`providers/*`) и никогда сторонние SDK напрямую (CLAUDE.md §4.1).

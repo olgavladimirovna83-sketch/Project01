@@ -47,15 +47,21 @@
 - Task 3.1: `src/integrations/IntegrationProvider.ts` — контракт `ExternalIntegration`-адаптеров (authorize URL, code exchange, refresh, account/media insights, best-effort disconnect), `IntegrationAuthError`/`IntegrationRateLimitError` как разные типы ошибок
 - Task 3.1: `src/integrations/IntegrationService.ts` — domain-facing фасад на registry (`registerIntegrationProvider`)
 - Task 3.1: `src/integrations/index.ts` — публичные экспорты модуля
+- Task 3.2: `src/integrations/providers/instagram.ts` — конкретная реализация `IntegrationProvider` для Instagram Business Login против реальных `api.instagram.com`/`graph.instagram.com`, включая `exchangeForLongLivedToken` как отдельно вызываемую диагностическую функцию
+- Task 3.2: `tests/unit/instagram-authorize-url.test.ts` — unit-тест `getAuthorizationUrl` (без сети)
+- Task 3.2: `tests/integration/instagram-live.smoke.test.ts` — живой smoke-тест против реального Instagram API (пропускается без credentials, не требует Instagram-секретов в CI)
+- Task 3.2: `.env.example` дополнен `INSTAGRAM_APP_ID`/`INSTAGRAM_APP_SECRET`/`INSTAGRAM_API_VERSION`/`INSTAGRAM_TEST_ACCESS_TOKEN`
 
 ### Fixed
 - `INSTAGRAM_API_REVIEW.md` §3: исправлен вывод о permissions после того, как Olga лично прошла реальную авторизацию Instagram — insights оказался отдельным разрешением от `instagram_business_basic`, не его частью, как предполагала исходная версия резюме. Подтверждённый набор: `instagram_business_basic` + insights, comments/messages/content-publish осознанно отключены
+- `src/integrations/IntegrationProvider.ts`: добавлено опциональное поле `metricType` в `IntegrationAccountInsightsParams` — найдено при реализации Task 3.2, что большинство account-level метрик, кроме `reach`, требуют явный `metric_type=total_value`, не было известно на Task 3.0/3.1
 
 ### Changed
 - Task 2.2: `src/app/page.tsx` — стал async server component, показывает logged-in/logged-out состояние через `auth()`
 - Task 2.2: `src/auth/config.ts` — добавлен `pages: { signIn: '/login' }`
 - Task 2.3: `src/app/api/me/route.ts` отрефакторен на `requireSessionUserId()` (без изменения поведения)
 - Task 2.3: `tests/e2e/auth-flow.spec.ts` — использует общий helper из `tests/e2e/helpers/auth.ts` вместо локальных дублей
+- Task 3.2: пустая папка `src/integrations/instagram/` удалена — реальный адаптер лежит в `providers/instagram.ts`, как `providers/anthropic.ts`/`providers/r2.ts`, не в отдельной per-platform папке
 - **Phase 2 — Authentication закрыта** (решение Olga, 12 августа 2026) на объёме Task 2.1–2.3 — критерий `42_IMPLEMENTATION_ROADMAP.md` §11 подтверждён тестами; account recovery/password reset и role model сознательно вне MVP-scope, см. `TASKS.md`
 - D-0001 пересмотрено: исходное решение принято без систематической проверки, переделано по 10-пунктному чек-листу с построчным чтением всех 46 документов
 - CLAUDE.md: добавлена иерархия документации (ранняя волна 04–16 vs поздняя 17–46), обновлён стек (object storage, observability)
