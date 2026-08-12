@@ -63,6 +63,9 @@ describe.skipIf(!hasCredentials)('instagram provider — live smoke test', () =>
         period: 'day',
       });
 
+      // eslint-disable-next-line no-console
+      console.log('[Task 3.2] getAccountInsights вернул:', JSON.stringify(result, null, 2));
+
       expect(Array.isArray(result.metrics)).toBe(true);
       expect(result.metrics.some((metric) => metric.name === 'reach')).toBe(true);
       expect(result.metrics.every((metric) => typeof metric.value === 'number')).toBe(true);
