@@ -8,7 +8,7 @@ on:
 
 jobs:
   ci:
-    name: Lint, type-check, build
+    name: Lint, type-check, tests, build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -34,3 +34,10 @@ jobs:
           # but PrismaClient() construction can require the env var to be
           # present even before any query runs. Not a real credential.
           DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+
+      - run: npm test
+
+      - name: Install Playwright browser (Chromium only)
+        run: npx playwright install --with-deps chromium
+
+      - run: npm run test:e2e

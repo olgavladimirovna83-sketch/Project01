@@ -3,7 +3,7 @@
 **Обновлено:** 12 августа 2026
 
 ## Текущая фаза
-Phase 0 — Project Foundation: **Task 0.1 и Task 0.2 завершены; Task 0.3 и Task 0.4 завершены в repo-части** (инфраструктурные/collaboration-настройки — staging-ресурсы и branch protection — за Olga)
+Phase 0 — Project Foundation: **Task 0.1–0.2 завершены; Task 0.3–0.4 завершены в repo-части; Task 0.5 завершена** (инфраструктурные/collaboration-настройки — staging-ресурсы и branch protection — за Olga)
 
 ## Завершено
 - Полная архитектурная и продуктовая спецификация (45 документов в `/docs`)
@@ -15,7 +15,9 @@ Phase 0 — Project Foundation: **Task 0.1 и Task 0.2 завершены; Task 
 - Task 0.1: git-репозиторий создан (local + remote GitHub, `origin/main`, история запушена), базовая структура папок на месте — `/docs`, `/src`, `/tests`
 - Task 0.2: Next.js + TypeScript + Prisma scaffolding создан и верифицирован. Структура `/src` физически отражает слои (`data/analysis/knowledge/decision/ai/storage/integrations/learning` + `app/` как UI/API layer). Обязательные абстракции реализованы: `AIProvider`/`AIService` (единственный импорт `@anthropic-ai/sdk` — в `src/ai/providers/anthropic.ts`), `ObjectStorageService` (единственный импорт AWS S3 SDK — в `src/storage/providers/r2.ts`), Prisma Client singleton в `src/data/`, `ExternalIntegration` — пустая заготовка до Task 3.0. Верификация: `npm install` (373 пакета), `npx prisma generate`, `npx tsc --noEmit` (без ошибок), `npm run dev` (Ready in 2.6s, HTTP 200 на `/`) — все прошли успешно
 - Task 0.3 (repo-часть): `ENVIRONMENTS.md` — стратегия трёх окружений (dev/staging/production), правило изоляции credentials/БД/Redis/storage по окружениям. `.env.example` расширен до полного набора переменных стека (Postgres, Redis, Auth.js, Anthropic, R2, Sentry) с комментариями по назначению и по окружению. `.gitignore` подтверждён (`.env`/`.env*.local` исключены)
-- **Task 0.4: `.github/workflows/ci.yml` — GitHub Actions pipeline на `pull_request`/`push` в `main`: `npm ci` → `npx prisma generate` → `npm run lint` → `npx tsc --noEmit` → `npm run build`. Все шаги проверены локально перед коммитом (lint — 0 warnings, build — успешен). Required status checks / branch protection на GitHub НЕ настроены — нет `gh` CLI и доступа к репозиторию в этом окружении, нужна ручная настройка Olga (см. «В работе»)**
+- Task 0.4: `.github/workflows/ci.yml` — GitHub Actions pipeline на `pull_request`/`push` в `main`: `npm ci` → `npx prisma generate` → `npm run lint` → `npx tsc --noEmit` → `npm run build`. Все шаги проверены локально перед коммитом (lint — 0 warnings, build — успешен). Required status checks / branch protection на GitHub НЕ настроены — нет `gh` CLI и доступа к репозиторию в этом окружении, нужна ручная настройка Olga (см. «В работе»)
+- D-0006: репозиторий перенесён на новый GitHub-аккаунт `olgavladimirovna83-sketch`, проект `Project01` (RED-действие, выполнено лично Olga; старый репозиторий `Olgavladimirovna83-create/Application` сохранён как резервный, не удалён)
+- **Task 0.5: тестовый фреймворк инициализирован — Vitest (`vitest.config.ts`, `tests/unit/`) и Playwright (`playwright.config.ts`, `tests/e2e/`), по одному smoke-тесту на каждый. `package.json`: `test`/`test:watch`/`test:e2e`. CI (`.github/workflows/ci.yml`) расширен шагами `npm test` и `npx playwright install --with-deps chromium` + `npm run test:e2e`. Проверено локально: unit-тест — 1 passed, E2E-тест (Chromium) — 1 passed**
 
 ## В работе
 - Task 0.3 (инфраструктурная часть) — создание реальных staging/production ресурсов (Vercel project, Neon-ветки, Upstash-инстансы, R2-buckets) требует доступа Olga к внешним дашбордам, у Claude Code нет аккаунтов/API-ключей этих сервисов.
@@ -32,7 +34,7 @@ Phase 0 — Project Foundation: **Task 0.1 и Task 0.2 завершены; Task 
 - `npm audit`: 3 high severity — транзитивные `postcss`/`sharp` через Next.js 15. Фикс требует мажорного апгрейда до Next.js 16 (`npm audit fix --force`), это не выполнено автоматически — решение об апгрейде откладывается, не блокирует Phase 0 (`DECISIONS.md`, D-0005; подтверждено ChatGPT при review завершения Task 0.2)
 
 ## Текущее окружение
-Node.js v24.19.0 / npm 11.17.0 установлены (Olga, вручную через официальный установщик). Репозиторий создан (local + GitHub remote `origin/main`), зависимости установлены, dev-сервер верифицирован локально. Staging / production инфраструктура ещё не создана — стратегия и структура готовы (`ENVIRONMENTS.md`), фактическое создание проектов на Vercel/Neon/Upstash/R2 — за Olga.
+Node.js v24.19.0 / npm 11.17.0 установлены (Olga, вручную через официальный установщик). Репозиторий: `github.com/olgavladimirovna83-sketch/Project01` (`origin/main`, см. D-0006). Зависимости установлены, dev-сервер и оба тестовых раннера верифицированы локально. Staging / production инфраструктура ещё не создана — стратегия и структура готовы (`ENVIRONMENTS.md`), фактическое создание проектов на Vercel/Neon/Upstash/R2 — за Olga.
 
 ## Следующая рекомендованная задача
-Task 0.5 — инициализация тестового фреймворка (Vitest + Playwright). Параллельно, независимо от прогресса Claude Code: Olga создаёт staging/production ресурсы (`ENVIRONMENTS.md`) и включает branch protection для `main` в GitHub Settings.
+Task 0.6 — проверка завершения Phase 0 (`42_IMPLEMENTATION_ROADMAP.md` §4). Часть критерия («deploy в staging») не может быть подтверждена до создания staging-инфраструктуры Olga. Параллельно, независимо от прогресса Claude Code: Olga создаёт staging/production ресурсы (`ENVIRONMENTS.md`) и включает branch protection для `main` в GitHub Settings.

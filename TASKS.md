@@ -33,6 +33,7 @@
 **Цель:** настроить Vitest (unit/integration) и Playwright (E2E), по одному smoke-тесту на каждый.
 **Спецификация:** `35_TESTING_QUALITY_CONTROL.md`.
 **Готово, когда:** `npm test` и E2E smoke проходят локально и в CI.
+**Статус:** Завершена. `vitest.config.ts` + `tests/unit/ai-service.smoke.test.ts`, `playwright.config.ts` + `tests/e2e/home.spec.ts`. `npm test` и `npm run test:e2e` проверены локально — оба проходят (1 passed каждый). CI (`.github/workflows/ci.yml`) расширен шагами `npm test` и `npx playwright install --with-deps chromium` + `npm run test:e2e` — фактический прогон в CI не подтверждён (нет открытого PR/push, требующего срабатывания workflow; будет подтверждено первым же PR/push после этого коммита).
 
 ### Task 0.6 — Проверка завершения Phase 0
 **Цель:** подтвердить критерий готовности Phase 0.

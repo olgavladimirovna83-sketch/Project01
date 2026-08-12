@@ -19,6 +19,8 @@
 - Task 0.3: `ENVIRONMENTS.md` — стратегия трёх окружений (dev/staging/production), правило изоляции credentials/БД/Redis/storage, правила secrets management (никогда в git/логах/frontend bundle)
 - Task 0.3: `.env.example` расширен до полного набора переменных стека — `REDIS_URL` (BullMQ/Upstash), `AUTH_SECRET` (Auth.js), `SENTRY_DSN`, с комментариями по назначению и окружению
 - Task 0.4: `.github/workflows/ci.yml` — GitHub Actions pipeline (`pull_request`/`push` на `main`): `npm ci` → `npx prisma generate` → `npm run lint` → `npx tsc --noEmit` → `npm run build`
+- Task 0.5: Vitest (`vitest.config.ts`, `tests/unit/ai-service.smoke.test.ts`) и Playwright (`playwright.config.ts`, `tests/e2e/home.spec.ts`) — по одному smoke-тесту на фреймворк; `package.json` scripts `test`/`test:watch`/`test:e2e`
+- Task 0.5: `.gitignore` — исключены артефакты Playwright (`/test-results/`, `/playwright-report/`, `/blob-report/`, `/playwright/.cache/`)
 
 ### Changed
 - D-0001 пересмотрено: исходное решение принято без систематической проверки, переделано по 10-пунктному чек-листу с построчным чтением всех 46 документов
@@ -36,6 +38,11 @@
 - Instagram/Auth boundary помечен YELLOW — добавлена обязательная задача технической проверки перед Phase 3 (Task 3.0)
 - В CLAUDE.md добавлен §4.1: обязательные архитектурные границы (App Auth vs Instagram Integration, AI_SERVICE→AI_PROVIDER_ADAPTER, инфраструктурные абстракции, layer discipline, async processing требования, гранулярность DECISIONS.md)
 
+### Changed (D-0006 — смена GitHub-аккаунта/репозитория)
+- Репозиторий перенесён с `Olgavladimirovna83-create/Application` на `olgavladimirovna83-sketch/Project01` — RED-действие, выполненное лично Olga (создание аккаунта, fine-grained PAT, репозитория), не автоматизацией
+- Старый репозиторий сохранён как резервный, не удалён; старый credential в Keychain не тронут
+- `README.md`/`ENVIRONMENTS.md` проверены на захардкоженные ссылки на старый репозиторий — не найдено
+
 ### Verified (Task 0.2)
 - Node.js v24.19.0 / npm 11.17.0 установлены Olga вручную (официальный установщик)
 - `npm install` — 373 пакета без ошибок; `npx prisma generate` — клиент сгенерирован
@@ -46,8 +53,15 @@
 - `npm run lint` — 0 warnings/errors (с deprecation-предупреждением `next lint` → удаляется в Next.js 16, см. Known issues)
 - `npm run build` (с плейсхолдерным `DATABASE_URL`) — успешная production-сборка, все 4 маршрута статически пререндерены
 
+### Verified (Task 0.5)
+- `npm test` (Vitest) — 1 passed
+- `npx playwright install chromium` — браузер установлен
+- `npm run test:e2e` (Playwright, Chromium) — 1 passed
+- `npx tsc --noEmit` и `npm run lint` повторно проверены после добавления тестовых файлов/конфигов — без ошибок
+
 ### Known issues
 - `npm audit`: 3 high severity — транзитивные `postcss`/`sharp` через Next.js 15; фикс требует мажорного апгрейда до Next.js 16, не выполнен автоматически (решение об апгрейде — отдельно, не блокирует Phase 0; см. `DECISIONS.md`, D-0005)
 - `next lint` помечен deprecated, будет удалён в Next.js 16 — при будущем апгрейде (см. пункт выше) потребуется миграция на ESLint CLI напрямую (`npx @next/codemod@canary next-lint-to-eslint-cli .`)
 - Task 0.3 не завершена полностью: реальные staging/production ресурсы (Vercel, Neon, Upstash, R2) не созданы — требуют доступа Olga к внешним дашбордам, вне возможностей Claude Code сессии
 - Task 0.4: required status checks / branch protection для `main` не настроены — нет `gh` CLI и это repo-настройка, которую агент не включает самостоятельно (см. CURRENT_STATUS.md)
+- `vitest.config.ts` при запуске выводит предупреждение о будущей смене дефолтного `configLoader` в Vite (ESM-конфиг, загружаемый как CommonJS) — не ошибка, не блокирует тесты, безопасно отложить
