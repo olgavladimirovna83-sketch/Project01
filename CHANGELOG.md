@@ -45,6 +45,9 @@
 - Task 2.3: `tests/e2e/goal-authorization.spec.ts` — ownership-check на `Goal` через реальный браузер (401 без сессии, owner читает свой goal, чужой пользователь получает 404 неотличимо от несуществующего id)
 - Task 3.0: `INSTAGRAM_API_REVIEW.md` — письменное резюме технической проверки Instagram/Meta Graph API (permissions, token lifecycle, доступные метрики, rate limits, webhooks) перед реализацией Integration Service; research-only, без создания Meta developer-аккаунта
 
+### Fixed
+- `INSTAGRAM_API_REVIEW.md` §3: исправлен вывод о permissions после того, как Olga лично прошла реальную авторизацию Instagram — insights оказался отдельным разрешением от `instagram_business_basic`, не его частью, как предполагала исходная версия резюме. Подтверждённый набор: `instagram_business_basic` + insights, comments/messages/content-publish осознанно отключены
+
 ### Changed
 - Task 2.2: `src/app/page.tsx` — стал async server component, показывает logged-in/logged-out состояние через `auth()`
 - Task 2.2: `src/auth/config.ts` — добавлен `pages: { signIn: '/login' }`
