@@ -15,6 +15,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   // обязателен JWT (проверено по документации Auth.js перед реализацией,
   // см. DECISIONS.md D-0009).
   session: { strategy: 'jwt' },
+  // Task 2.2 — своя страница входа вместо встроенной страницы Auth.js.
+  pages: { signIn: '/login' },
   providers: [
     Credentials({
       credentials: {

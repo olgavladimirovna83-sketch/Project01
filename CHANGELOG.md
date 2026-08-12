@@ -34,8 +34,15 @@
 - Task 2.1: `tests/integration/auth-credentials.smoke.test.ts` — smoke-тест `authenticateWithCredentials` против живой БД
 - Task 2.1: `.github/workflows/ci.yml` дополнен `AUTH_SECRET` (CI-only значение, не реальный секрет)
 - D-0009: механизм аутентификации MVP — Credentials (email+password), выбран чтобы не создавать RED-зависимость от внешнего email-сервиса (по ограничению Olga)
+- Task 2.2: `src/auth/register.ts` — `registerUser` (валидация email/пароля, проверка занятого email, хеширование, создание пользователя)
+- Task 2.2: `src/app/api/register/route.ts`, `src/app/api/me/route.ts` — registration API и единственный protected route
+- Task 2.2: `src/app/login/page.tsx`, `src/app/register/page.tsx`, `src/app/_components/LogoutButton.tsx` — UI для входа/регистрации/выхода
+- Task 2.2: `tests/e2e/auth-flow.spec.ts` — полный HTTP session cycle через реальный браузер (issuance/чтение cookie-based JWT-сессии, logout-инвалидация, user isolation на двух независимых аккаунтах) — закрывает пробел, оставленный в Task 2.1
+- Task 2.2: `tests/integration/auth-registration.smoke.test.ts` — `registerUser` против живой БД
 
 ### Changed
+- Task 2.2: `src/app/page.tsx` — стал async server component, показывает logged-in/logged-out состояние через `auth()`
+- Task 2.2: `src/auth/config.ts` — добавлен `pages: { signIn: '/login' }`
 - D-0001 пересмотрено: исходное решение принято без систематической проверки, переделано по 10-пунктному чек-листу с построчным чтением всех 46 документов
 - CLAUDE.md: добавлена иерархия документации (ранняя волна 04–16 vs поздняя 17–46), обновлён стек (object storage, observability)
 
