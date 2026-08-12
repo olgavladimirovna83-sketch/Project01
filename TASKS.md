@@ -27,6 +27,7 @@
 **Спецификация:** `46_PRODUCTION_OPERATIONS_AND_RELIABILITY.md` §7; `35_TESTING_QUALITY_CONTROL.md` §53.
 **Готово, когда:** PR не мержится при падении критичных проверок.
 **Важно:** при `npm install` в CI (как и локально при верификации Task 0.2) `@prisma/client`-postinstall не всегда генерирует клиент автоматически (наблюдалось из-за `allow-scripts`-политики npm). CI pipeline должен явно включать шаг `npx prisma generate` перед `type-check`/`build` — иначе сборка будет падать на отсутствии сгенерированного Prisma Client.
+**Статус:** pipeline готов (`.github/workflows/ci.yml`: lint → type-check → build; шаги для тестов добавляются в Task 0.5), все шаги проверены локально. **Не сделано:** required status checks / branch protection для `main` в GitHub Settings — в этой среде нет `gh` CLI, и это repo-настройка вне scope автоматического выполнения агентом. Без этого шага PR технически может быть смёрджен при падении CI — буквальный Definition of Done («PR не мержится при падении критичных проверок») требует ручного действия Olga: Settings → Branches → Branch protection rule для `main` → Require status checks to pass → выбрать check `Lint, type-check, build`.
 
 ### Task 0.5 — Инициализация тестового фреймворка
 **Цель:** настроить Vitest (unit/integration) и Playwright (E2E), по одному smoke-тесту на каждый.

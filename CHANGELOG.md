@@ -18,6 +18,7 @@
 - `package-lock.json` — зафиксирован после `npm install` (373 пакета)
 - Task 0.3: `ENVIRONMENTS.md` — стратегия трёх окружений (dev/staging/production), правило изоляции credentials/БД/Redis/storage, правила secrets management (никогда в git/логах/frontend bundle)
 - Task 0.3: `.env.example` расширен до полного набора переменных стека — `REDIS_URL` (BullMQ/Upstash), `AUTH_SECRET` (Auth.js), `SENTRY_DSN`, с комментариями по назначению и окружению
+- Task 0.4: `.github/workflows/ci.yml` — GitHub Actions pipeline (`pull_request`/`push` на `main`): `npm ci` → `npx prisma generate` → `npm run lint` → `npx tsc --noEmit` → `npm run build`
 
 ### Changed
 - D-0001 пересмотрено: исходное решение принято без систематической проверки, переделано по 10-пунктному чек-листу с построчным чтением всех 46 документов
@@ -41,6 +42,12 @@
 - `npx tsc --noEmit` — без ошибок типов
 - `npm run dev` — сервер поднялся (`Ready in 2.6s`), `GET /` вернул HTTP 200 с ожидаемым содержимым
 
+### Verified (Task 0.4)
+- `npm run lint` — 0 warnings/errors (с deprecation-предупреждением `next lint` → удаляется в Next.js 16, см. Known issues)
+- `npm run build` (с плейсхолдерным `DATABASE_URL`) — успешная production-сборка, все 4 маршрута статически пререндерены
+
 ### Known issues
 - `npm audit`: 3 high severity — транзитивные `postcss`/`sharp` через Next.js 15; фикс требует мажорного апгрейда до Next.js 16, не выполнен автоматически (решение об апгрейде — отдельно, не блокирует Phase 0; см. `DECISIONS.md`, D-0005)
+- `next lint` помечен deprecated, будет удалён в Next.js 16 — при будущем апгрейде (см. пункт выше) потребуется миграция на ESLint CLI напрямую (`npx @next/codemod@canary next-lint-to-eslint-cli .`)
 - Task 0.3 не завершена полностью: реальные staging/production ресурсы (Vercel, Neon, Upstash, R2) не созданы — требуют доступа Olga к внешним дашбордам, вне возможностей Claude Code сессии
+- Task 0.4: required status checks / branch protection для `main` не настроены — нет `gh` CLI и это repo-настройка, которую агент не включает самостоятельно (см. CURRENT_STATUS.md)

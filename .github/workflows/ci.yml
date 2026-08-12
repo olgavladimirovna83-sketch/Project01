@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  ci:
+    name: Lint, type-check, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      # Prisma's postinstall client generation is not guaranteed to run under
+      # every npm install policy (see TASKS.md, Task 0.4 note) — generate explicitly.
+      - run: npx prisma generate
+
+      - run: npm run lint
+
+      - run: npx tsc --noEmit
+
+      - run: npm run build
+        env:
+          # Placeholder — nothing currently imports src/data at build time,
+          # but PrismaClient() construction can require the env var to be
+          # present even before any query runs. Not a real credential.
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
