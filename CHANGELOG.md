@@ -43,6 +43,7 @@
 - Task 2.3: `src/app/api/goals/route.ts` (`POST`), `src/app/api/goals/[id]/route.ts` (`GET`) — первый ownership-protected resource за пределами `User`
 - Task 2.3: `tests/e2e/helpers/auth.ts` — общий `registerAndLogin`/`uniqueEmail` helper для e2e-тестов
 - Task 2.3: `tests/e2e/goal-authorization.spec.ts` — ownership-check на `Goal` через реальный браузер (401 без сессии, owner читает свой goal, чужой пользователь получает 404 неотличимо от несуществующего id)
+- Task 3.0: `INSTAGRAM_API_REVIEW.md` — письменное резюме технической проверки Instagram/Meta Graph API (permissions, token lifecycle, доступные метрики, rate limits, webhooks) перед реализацией Integration Service; research-only, без создания Meta developer-аккаунта
 
 ### Changed
 - Task 2.2: `src/app/page.tsx` — стал async server component, показывает logged-in/logged-out состояние через `auth()`
