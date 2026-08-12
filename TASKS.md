@@ -83,6 +83,7 @@
 - Объединить `35_TESTING_QUALITY_CONTROL.md` + `43_TESTING_AND_QUALITY_ASSURANCE.md`
 - Объединить `31_INFRASTRUCTURE_DEPLOYMENT.md` + `37_DEPLOYMENT_RELEASE_STRATEGY.md`
 - Объединить `20_USER_JOURNEY.md` + `33_UX_USER_FLOWS.md`
+- `42_IMPLEMENTATION_ROADMAP.md` §6 использует обобщённую терминологию (RawData/NormalizedData/Insight/KnowledgeItem), не совпадающую дословно с 18/22_DATA_MODEL.md — вероятно, разный уровень абстракции одного и того же, не отдельная схема; свериться при необходимости, не блокирует.
 
 ### First.md
 **Причина отсрочки:** требует решения Olga — наполнить или удалить (удаление файла из репозитория — не техническое решение по умолчанию).
