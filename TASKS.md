@@ -45,11 +45,22 @@
 
 ## Phase 1 — Database Foundation (следующее после Phase 0)
 
+### Phase 1 completion — отложенный критерий «connected account»
+`42_IMPLEMENTATION_ROADMAP.md` §8 (PHASE 1 COMPLETION) включает критерий «создать connected account». В 10-сущностной схеме Task 1.1 (`DECISIONS.md`, D-0008) сущности `ExternalAccount` нет — ожидаемо, не пропущено. `ExternalAccount` тесно связана с `ExternalIntegration` (`src/integrations/`), которая намеренно оставлена пустым интерфейсом до Task 3.0 (техническая проверка Meta/Instagram Graph API — permissions, token lifecycle). Проектировать таблицу connected account раньше, чем понятен реальный OAuth/token lifecycle — та же логика, что в D-0003 (Instagram/Auth boundary, YELLOW, не блокирует Phase 0/1/2). **Критерий «создать connected account» отложен до Phase 3 / Task 3.0. Не блокирует закрытие Phase 1 по остальным критериям.**
+
 ### Task 1.1 — Схема БД: core entities
 **Цель:** миграции Prisma для User, Goal, Content, ContentFeature, PerformanceMetric, Pattern, Memory, Recommendation, UserDecision, Experiment.
 **Спецификация:** `18_DATA_MODEL.md`, `22_DATA_MODEL.md`, `25_DATABASE_SCHEMA.md`.
 **Готово, когда:** миграции применяются и откатываются чисто, связи соответствуют data model.
 **Статус:** Завершена. `prisma/schema.prisma` — 10 моделей + 5 enum (см. `DECISIONS.md`, D-0008 по поводу scope и enum/String правила). Миграция `20260812142954_init_core_entities` применена и провалидирована на локальном PostgreSQL (Postgres.app): `prisma migrate dev` — применена на dev-базе `olga`; чистый rollback/reapply подтверждён через `prisma migrate reset` на отдельной одноразовой базе `project_bootstrap_migration_check` (создана и удалена только для этой проверки, база `olga` не тронута). `npx tsc --noEmit`, `npm run lint`, `npm run build`, `npm test` — без ошибок после изменений.
+
+### Task 1.2 — Data-access слой (repository)
+**Цель:** repository-слой в `src/data/` поверх Prisma-моделей из Task 1.1, для всех 10 сущностей — базовые `create`/`findById`/`update`-функции, не более того, что реально понадобится ближайшим фазам (без delete/soft-delete, без поиска по связям — добавляются по мере необходимости).
+**Спецификация:** `42_IMPLEMENTATION_ROADMAP.md` §5 (repository/data-access layer как часть Phase 1), `CLAUDE.md` §4.1 (единственная точка доступа к `@prisma/client`).
+**Готово, когда:** по репозиторию на каждую из 10 сущностей с `create`/`findById`/`update`; smoke-тест, реально проходящий по оставшимся критериям Phase 1 completion (`42_IMPLEMENTATION_ROADMAP.md` §8): создать user → сохранить данные → получить данные обратно.
+**Статус:** Завершена. `src/data/repositories/` — 10 файлов (`userRepository`, `goalRepository`, `contentRepository`, `contentFeatureRepository`, `performanceMetricRepository`, `patternRepository`, `memoryRepository`, `recommendationRepository`, `userDecisionRepository`, `experimentRepository`), реэкспорт через `src/data/index.ts`. Интеграционный smoke-тест `tests/integration/user-data-flow.smoke.test.ts` (новая папка `tests/integration/`, добавлена в `vitest.config.ts`): создаёт user → создаёт связанный goal → читает оба обратно → проверяет данные → убирает за собой (`afterAll` + `onDelete: Cascade`). CI (`.github/workflows/ci.yml`) получил `postgres:16` service-контейнер + шаг `prisma migrate deploy` перед тестами — интеграционный тест теперь реально прогоняется и в CI, не только локально. Проверено локально: `npm test` (2/2 passed), `npm run test:e2e` (1/1 passed), `npx tsc --noEmit`, `npm run lint`, `npm run build` — без ошибок; после прогона в БД `olga` не осталось тестовых строк (проверено `psql`).
+
+**Phase 1 — Database Foundation считается завершённой** по всем критериям `42_IMPLEMENTATION_ROADMAP.md` §8, кроме «connected account» (сознательно отложен до Phase 3/Task 3.0 — см. выше).
 
 *(остальные задачи Phase 1+ добавляются по мере продвижения — весь backlog заранее не расписывается, чтобы не рассинхронизироваться с реальностью)*
 

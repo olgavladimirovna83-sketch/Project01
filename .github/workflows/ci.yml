@@ -10,6 +10,27 @@ jobs:
   ci:
     name: Lint, type-check, tests, build
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      # Real Postgres service above — tests/integration/** needs a live DB
+      # with migrations applied (see the "Apply migrations" step below).
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+
     steps:
       - uses: actions/checkout@v4
 
@@ -24,16 +45,13 @@ jobs:
       # every npm install policy (see TASKS.md, Task 0.4 note) — generate explicitly.
       - run: npx prisma generate
 
+      - run: npx prisma migrate deploy
+
       - run: npm run lint
 
       - run: npx tsc --noEmit
 
       - run: npm run build
-        env:
-          # Placeholder — nothing currently imports src/data at build time,
-          # but PrismaClient() construction can require the env var to be
-          # present even before any query runs. Not a real credential.
-          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
 
       - run: npm test
 
