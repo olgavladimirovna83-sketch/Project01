@@ -55,6 +55,7 @@
 ### Fixed
 - `INSTAGRAM_API_REVIEW.md` §3: исправлен вывод о permissions после того, как Olga лично прошла реальную авторизацию Instagram — insights оказался отдельным разрешением от `instagram_business_basic`, не его частью, как предполагала исходная версия резюме. Подтверждённый набор: `instagram_business_basic` + insights, comments/messages/content-publish осознанно отключены
 - `src/integrations/IntegrationProvider.ts`: добавлено опциональное поле `metricType` в `IntegrationAccountInsightsParams` — найдено при реализации Task 3.2, что большинство account-level метрик, кроме `reach`, требуют явный `metric_type=total_value`, не было известно на Task 3.0/3.1
+- `vitest.config.ts`: `.env` не грузился в `process.env` вообще — `DATABASE_URL` у прежних Prisma-тестов «работал» только случайно, как побочный эффект того, что `@prisma/client` сам грузит `.env` при первом импорте (и на весь процесс). Тест на Instagram (не импортирует Prisma) без этого не видел `INSTAGRAM_*`-переменные вообще. Исправлено явной загрузкой через `loadEnv` из `vite` (`test.env`) — общий фикс, полезен для любых будущих кастомных переменных, не костыль только под Instagram
 
 ### Changed
 - Task 2.2: `src/app/page.tsx` — стал async server component, показывает logged-in/logged-out состояние через `auth()`
