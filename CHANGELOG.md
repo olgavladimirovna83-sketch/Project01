@@ -81,6 +81,10 @@
 - D-0014: новая сущность `AccountSnapshot` для account-level метрик — ни `PerformanceMetric`, ни `Baseline` для этого не подходят, YELLOW-решение с обоснованием
 - Task 4.3: `src/ingestion/retry.ts` — `withRetry`/`RetriesExhaustedError`, exponential backoff + maximum attempts, `IntegrationAuthError` не ретраится, `IntegrationRateLimitError.retryAfterSeconds` используется как задержка
 - Task 4.3: `tests/unit/ingestion-retry.test.ts` — 7 тестов на синтетических ошибках, без сети/таймеров реального времени
+- Task 5.1: `src/dataQuality/dataQualityStatus.ts` — `getDataQualityStatus(userId)`, сводит `ExternalAccount`/`AccountSnapshot`/`PerformanceMetric` в freshness/gaps/failure статус (42_IMPLEMENTATION_ROADMAP.md §28–29), без сбора новых данных
+- Task 5.1: `src/app/api/data-quality/route.ts` — `GET`, session-protected
+- Task 5.1: `tests/integration/data-quality-status.smoke.test.ts` — 6 тестов против реальной БД, без сетевых вызовов
+- D-0015: `SyncWarning` (Task 4.3) не персистится — `hasRecentFailure` в data quality status основан только на `ExternalAccount.status`, YELLOW-решение с обоснованием
 
 ### Fixed
 - `INSTAGRAM_API_REVIEW.md` §3: исправлен вывод о permissions после того, как Olga лично прошла реальную авторизацию Instagram — insights оказался отдельным разрешением от `instagram_business_basic`, не его частью, как предполагала исходная версия резюме. Подтверждённый набор: `instagram_business_basic` + insights, comments/messages/content-publish осознанно отключены
@@ -108,6 +112,7 @@
 - Task 4.2: `README.md` — добавлена ссылка на новый `DOCUMENT_CROSS_REFERENCE.md`
 - Task 4.3: `src/integrations/providers/instagram.ts` — все 7 вызовов `fetch()` переведены на `fetchWithTimeout` (10с, `AbortController`)
 - Task 4.3: `src/ingestion/instagramSync.ts` — `getAccountInsights`/`listRecentMedia`/`getMediaInsights` обёрнуты `withRetry`; `SyncWarning` дополнен `attempts`
+- Task 5.1: `src/data/repositories/contentRepository.ts`/`performanceMetricRepository.ts`/`accountSnapshotRepository.ts` — новые read-only методы (`countByExternalAccountId`, `findLatestMeasuredAtByExternalAccountId`, `findLatestCapturedAt`) для data quality status
 - **Phase 2 — Authentication закрыта** (решение Olga, 12 августа 2026) на объёме Task 2.1–2.3 — критерий `42_IMPLEMENTATION_ROADMAP.md` §11 подтверждён тестами; account recovery/password reset и role model сознательно вне MVP-scope, см. `TASKS.md`
 - D-0001 пересмотрено: исходное решение принято без систематической проверки, переделано по 10-пунктному чек-листу с построчным чтением всех 46 документов
 - CLAUDE.md: добавлена иерархия документации (ранняя волна 04–16 vs поздняя 17–46), обновлён стек (object storage, observability)

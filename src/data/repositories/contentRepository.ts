@@ -19,4 +19,9 @@ export const contentRepository = {
   update(id: string, data: Prisma.ContentUpdateInput): Promise<Content> {
     return prisma.content.update({ where: { id }, data });
   },
+  // Task 5.1 — data quality status: "есть ли явные пробелы" (подключён и
+  // синхронизирован, но ни одной публикации не сохранено).
+  countByExternalAccountId(externalAccountId: string): Promise<number> {
+    return prisma.content.count({ where: { externalAccountId } });
+  },
 };
