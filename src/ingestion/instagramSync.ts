@@ -1,4 +1,5 @@
 import {
+  accountSnapshotRepository,
   contentRepository,
   externalAccountRepository,
   performanceMetricRepository,
@@ -18,6 +19,10 @@ import { normalizeContentType, validateMediaItem } from './normalize';
  * normalize → сохранить в Content/PerformanceMetric. Простая, синхронная,
  * разовая — без очереди (по прямому требованию Olga, решение об async
  * обработке отдельное и позже).
+ *
+ * Task 4.2 — account-level insights (getAccountInsights) персистятся в
+ * AccountSnapshot (DECISIONS.md D-0014), той же snapshot-семантикой, что
+ * PerformanceMetric: каждый sync создаёт новые строки, не upsert.
  *
  * Сырой ответ API не сохраняется отдельно — см. DECISIONS.md D-0011.
  */
@@ -57,11 +62,10 @@ export async function syncInstagramAccount(userId: string): Promise<SyncSummary>
   let accountInsights: SyncSummary['accountInsights'] = [];
 
   try {
-    // Account-level insights — забирается и нормализуется, но сознательно
-    // не персистится в этой задаче: PerformanceMetric.contentId обязателен,
-    // account-level метрика не привязана к публикации. Явная scope-граница
-    // (TASKS.md, Task 4.1), не тихий пропуск. Ошибка здесь не должна
-    // блокировать синхронизацию публикаций — только логируется предупреждением.
+    // Account-level insights — с Task 4.2 персистится в AccountSnapshot
+    // (DECISIONS.md D-0014), не только показывается в summary. Ошибка
+    // здесь не должна блокировать синхронизацию публикаций — только
+    // логируется предупреждением.
     try {
       const accountInsightsResult = await IntegrationService.getAccountInsights('instagram', {
         accessToken: account.accessToken,
@@ -69,6 +73,28 @@ export async function syncInstagramAccount(userId: string): Promise<SyncSummary>
         period: 'day',
       });
       accountInsights = accountInsightsResult.metrics;
+
+      const capturedAt = new Date();
+      for (const metric of accountInsights) {
+        await accountSnapshotRepository.create({
+          externalAccount: { connect: { id: account.id } },
+          metricType: metric.name,
+          value: metric.value,
+          capturedAt,
+          source: 'instagram_api',
+        });
+      }
+      // unavailableMetrics — value: null, не молчаливый пропуск, тот же
+      // принцип, что для PerformanceMetric (08_METRICS_FRAMEWORK.md §11).
+      for (const unavailableMetric of accountInsightsResult.unavailableMetrics) {
+        await accountSnapshotRepository.create({
+          externalAccount: { connect: { id: account.id } },
+          metricType: unavailableMetric,
+          value: null,
+          capturedAt,
+          source: 'instagram_api',
+        });
+      }
     } catch (error) {
       if (error instanceof IntegrationAuthError) {
         throw error;

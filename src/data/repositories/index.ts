@@ -1,3 +1,4 @@
+export { accountSnapshotRepository } from './accountSnapshotRepository';
 export { contentFeatureRepository } from './contentFeatureRepository';
 export { contentRepository } from './contentRepository';
 export { experimentRepository } from './experimentRepository';

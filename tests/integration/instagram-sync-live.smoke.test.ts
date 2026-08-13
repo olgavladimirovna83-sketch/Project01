@@ -17,12 +17,17 @@ const hasCredentials = Boolean(
  * OAuth-flow (это не то, что тестируется здесь; OAuth flow уже проверен
  * в Task 3.2/3.4). externalUserId — плейсхолдер: syncInstagramAccount его
  * не использует, только accessToken/id.
+ *
+ * Task 4.2 — тот же тест дополнен проверкой AccountSnapshot (DECISIONS.md
+ * D-0014): account-level insights теперь персистятся, не только
+ * показываются в summary.
  */
 let createdUserId: string | undefined;
 
 afterAll(async () => {
   if (createdUserId) {
-    // onDelete: Cascade — user -> ExternalAccount, user -> Content -> PerformanceMetric.
+    // onDelete: Cascade — user -> ExternalAccount -> AccountSnapshot,
+    // user -> Content -> PerformanceMetric.
     await prisma.user.delete({ where: { id: createdUserId } });
   }
   await prisma.$disconnect();
@@ -75,6 +80,18 @@ describe.skipIf(!hasCredentials)('instagram sync pipeline — live smoke test', 
       });
       expect(account.lastSyncedAt).not.toBeNull();
 
+      // Task 4.2 — account-level insights (reach) должны быть сохранены как
+      // AccountSnapshot, не только показаны в summary.accountInsights.
+      const storedSnapshots = await prisma.accountSnapshot.findMany({
+        where: { externalAccountId: account.id },
+      });
+      expect(storedSnapshots.length).toBe(summary.accountInsights.length);
+      if (summary.accountInsights.length > 0) {
+        expect(storedSnapshots.map((s) => s.metricType).sort()).toEqual(
+          summary.accountInsights.map((m) => m.name).sort(),
+        );
+      }
+
       if (summary.contentSynced > 0) {
         // Повторный sync: Content не должен дублироваться (upsert по
         // natural key), PerformanceMetric — должен: это snapshot-таблица,
@@ -94,6 +111,15 @@ describe.skipIf(!hasCredentials)('instagram sync pipeline — live smoke test', 
           where: { content: { userId: user.id } },
         });
         expect(metricsAfterSecondSync).toBe(summary.metricsSynced + secondSummary.metricsSynced);
+
+        // AccountSnapshot — та же snapshot-семантика: второй sync добавляет
+        // новые строки, не перезаписывает.
+        const snapshotsAfterSecondSync = await prisma.accountSnapshot.count({
+          where: { externalAccountId: account.id },
+        });
+        expect(snapshotsAfterSecondSync).toBe(
+          storedSnapshots.length + secondSummary.accountInsights.length,
+        );
       }
     },
     60000,

@@ -213,7 +213,8 @@ model ExternalAccount {
   // принцип, применён здесь по аналогии).
   username       String?
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountSnapshots AccountSnapshot[]
 
   @@unique([platform, externalUserId])
   @@index([userId])
@@ -221,8 +222,8 @@ model ExternalAccount {
 }
 
 model Content {
-  id        String    @id @default(cuid())
-  userId    String    @map("user_id")
+  id                String    @id @default(cuid())
+  userId            String    @map("user_id")
   // Плейсхолдер-поля — ExternalAccount (выше) теперь существует как
   // реальная сущность (Task 3.3), но здесь всё ещё простые строковые
   // значения, не @relation: wiring в реальный внешний ключ — отдельная
@@ -235,7 +236,7 @@ model Content {
   createdAt         DateTime  @default(now()) @map("created_at")
   updatedAt         DateTime  @updatedAt @map("updated_at")
 
-  user               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   features           ContentFeature[]
   performanceMetrics PerformanceMetric[]
 
@@ -277,6 +278,31 @@ model PerformanceMetric {
   @@index([contentId])
   @@index([measuredAt])
   @@map("performance_metrics")
+}
+
+// Task 4.2 — DECISIONS.md D-0014: account-level метрики (getAccountInsights,
+// 08_METRICS_FRAMEWORK.md §2) не покрываются ни PerformanceMetric (жёстко
+// привязан к content_id), ни Baseline/25_DATABASE_SCHEMA.md §16
+// (вычисленное значение с confidence/sample_size, не сырое измерение) —
+// реальный пробел в документированной схеме, не только в реализации.
+// AccountSnapshot — по аналогии с PerformanceMetric, но на уровне
+// ExternalAccount вместо Content.
+model AccountSnapshot {
+  id                String   @id @default(cuid())
+  externalAccountId String   @map("external_account_id")
+  metricType        String   @map("metric_type")
+  // Nullable, не 0 — тот же принцип, что PerformanceMetric.value
+  // (25_DATABASE_SCHEMA.md §56 NULL VS ZERO).
+  value             Int?
+  capturedAt        DateTime @map("captured_at")
+  source            String?
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  externalAccount ExternalAccount @relation(fields: [externalAccountId], references: [id], onDelete: Cascade)
+
+  @@index([externalAccountId])
+  @@index([capturedAt])
+  @@map("account_snapshots")
 }
 
 model Pattern {
@@ -353,7 +379,7 @@ model UserDecision {
 }
 
 model Experiment {
-  id          String    @id @default(cuid())
+  id           String    @id @default(cuid())
   // Плейсхолдер до появления сущности Hypothesis (вне scope Task 1.1) —
   // не relation.
   hypothesisId String?   @map("hypothesis_id")

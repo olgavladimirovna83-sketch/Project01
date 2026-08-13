@@ -306,3 +306,29 @@
 **Последствия.** Ничего не меняется в текущей реализации — `normalizeContentType` уже делает это правильно (Task 4.1), уточнён только комментарий. Обязательна сверка с этим решением (вместе с [[D-0012]]) при реализации Pattern Detection (Phase 7) — `reel` должен участвовать как отдельная категория формата в `PATTERN`/`GOAL_PERFORMANCE`-анализе, не сливаться с `video`.
 
 ---
+
+## D-0014 — Task 4.2: новая сущность `AccountSnapshot` для account-level метрик — пробел в документированной схеме, не только в реализации
+
+**Дата:** 13 августа 2026
+**Статус:** Принято (YELLOW — Olga явно попросила решить и зафиксировать перед реализацией, не оставлять неявным)
+
+**Контекст.** `getAccountInsights` (Task 3.1–3.2) забирает account-level метрики Instagram (`08_METRICS_FRAMEWORK.md` §2 — total followers, follower growth, total reach, accounts engaged и т.п., явно отдельная категория от publication-level метрик). Task 4.1 сознательно оставил их непersistентными — только в summary синхронизации (явная scope-граница, зафиксированная в `TASKS.md`). При проработке Task 4.2 выяснилось: ни одна из существующих 10+ сущностей (Task 1.1, D-0008 + `ExternalAccount`, Task 3.3) не подходит для их постоянного хранения:
+- `PerformanceMetric` — `contentId` обязателен (`25_DATABASE_SCHEMA.md` §13/§14 PERFORMANCE/PERFORMANCE_SNAPSHOTS), обе документированные сущности жёстко привязаны к публикации, account-level метрика в принципе не имеет `content_id`.
+- `Baseline` (`25_DATABASE_SCHEMA.md` §16 BASELINES) — по полям (`sample_size`, `confidence`, `calculation_version`) это явно **вычисленное** значение (среднее/норма для сравнения), а не сырое измерение с платформы. Использовать его для сырых снимков означало бы смешать два разных по смыслу понятия в одной таблице.
+
+Это реальный пробел в документированной схеме (`25_DATABASE_SCHEMA.md` не описывает ни одной сущности под сырые account-level измерения), не только пробел в объёме Task 4.1 — зафиксирован отдельно в `DOCUMENT_CROSS_REFERENCE.md` («Известные ограничения»), чтобы не пришлось переоткрывать при следующей задаче, которая коснётся account-level данных.
+
+**Решение.** Новая сущность `AccountSnapshot` — по аналогии с `PerformanceMetric`, но на уровне `ExternalAccount` вместо `Content`:
+- `id`, `externalAccountId` (→ `ExternalAccount`, `onDelete: Cascade`), `metricType`, `value` (nullable `Int`), `capturedAt`, `source`, `createdAt`.
+- Snapshot-семантика (как `PerformanceMetric`, `26_DATA_PIPELINE.md` §19 SNAPSHOT_PRINCIPLE): каждый sync создаёт **новые** строки, не upsert — временной ряд, не текущее состояние.
+- `value` nullable — тот же принцип NULL vs ZERO (`25_DATABASE_SCHEMA.md` §56), `unavailableMetrics` из `getAccountInsights` тоже сохраняются как `value: null` строки, не пропускаются молча (`08_METRICS_FRAMEWORK.md` §11).
+- Вызывается из уже существующего `syncInstagramAccount` (`src/ingestion/instagramSync.ts`) сразу после получения `getAccountInsights`, тем же синхронным путём, без новой инфраструктуры.
+
+**Обоснование:**
+- Минимальный риск: копирует уже проверенный, работающий паттерн `PerformanceMetric`, а не изобретает новую модель хранения метрик.
+- Не смешивает сырое измерение с вычисленным значением — сохраняет чёткое разделение, которое уже подразумевает документированная схема (raw `PerformanceMetric`/`PERFORMANCE_SNAPSHOTS` vs derived `Baseline`/`BASELINES`), просто закрывает пробел на account-level стороне тем же принципом.
+- `capturedAt`, а не `measuredAt` — по прямому указанию Olga, совпадает с терминологией `25_DATABASE_SCHEMA.md` §14 PERFORMANCE_SNAPSHOTS (`captured_at`), которая ближе по смыслу (snapshot во времени), чем §13 PERFORMANCE, откуda исторически взято имя поля `PerformanceMetric.measuredAt`.
+
+**Последствия.** Новая таблица `account_snapshots`, миграция `20260813191441_account_snapshots`, применена и проверена на чистое переприменение полной истории (5 миграций) на одноразовой базе. `docs/25_DATABASE_SCHEMA.md` не редактируется (read-only источник истины, `CLAUDE.md` §2) — пробел зафиксирован в `DOCUMENT_CROSS_REFERENCE.md`, не в `/docs`. Обязательно учитывать `AccountSnapshot` как источник account-level данных при проектировании `Baseline`-вычислений и Pattern Detection (Phase 6–7), когда до них дойдёт очередь — сырые данные и вычисленные из них величины теперь физически разделены, как и задумано документированной схемой для content-level данных.
+
+---

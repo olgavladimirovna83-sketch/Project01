@@ -73,6 +73,12 @@
 - Task 4.1: `tests/unit/ingestion-normalize.test.ts` — 10 тестов на синтетических данных
 - Task 4.1: `tests/integration/instagram-sync-live.smoke.test.ts` — живой smoke-тест полного pipeline против реального Instagram API (skip-if-no-credentials, как Task 3.2)
 - D-0011: сырой ответ Instagram API не сохраняется отдельно на этом этапе — только нормализованные данные, YELLOW-решение зафиксировано заранее по запросу Olga
+- D-0012: forward-looking — связь «формат контента ↔ цель» не должна быть жёстко закодирована ни в коде, ни в промптах AI, вычисляется статистически через `GOAL_PERFORMANCE`/`PATTERN` для каждого пользователя (продуктовое требование Olga, важно перед Phase 6–9)
+- D-0013: `Content.contentType` держит `'reel'` отдельно от `'video'` — осознанное отклонение от иллюстративного примера `26_DATA_PIPELINE.md` §9, обосновано требованиями будущего Pattern Detection (Phase 7)
+- Task 4.2: `prisma/schema.prisma` — новая модель `AccountSnapshot` (по аналогии с `PerformanceMetric`, но на уровне `ExternalAccount`), миграция `20260813191441_account_snapshots`
+- Task 4.2: `src/data/repositories/accountSnapshotRepository.ts` — `create`/`findByExternalAccountId`
+- Task 4.2: `DOCUMENT_CROSS_REFERENCE.md` — новый файл, реестр найденных расхождений/пробелов между `/docs` и реализацией (раздел «Известные ограничения»: account-level метрики не покрыты `25_DATABASE_SCHEMA.md`)
+- D-0014: новая сущность `AccountSnapshot` для account-level метрик — ни `PerformanceMetric`, ни `Baseline` для этого не подходят, YELLOW-решение с обоснованием
 
 ### Fixed
 - `INSTAGRAM_API_REVIEW.md` §3: исправлен вывод о permissions после того, как Olga лично прошла реальную авторизацию Instagram — insights оказался отдельным разрешением от `instagram_business_basic`, не его частью, как предполагала исходная версия резюме. Подтверждённый набор: `instagram_business_basic` + insights, comments/messages/content-publish осознанно отключены
@@ -96,6 +102,8 @@
 - Task 3.4 (дополнение): `callback/route.ts` сохраняет `identity.username`; `/integrations` показывает `Аккаунт: @username`
 - Task 4.1: `src/app/integrations/page.tsx` — показывает `lastSyncedAt` и `<SyncButton />`
 - Task 4.1: `src/app/api/integrations/instagram/sync/route.ts` — убран избыточный `import '@/integrations/bootstrap'` (теперь делает это `instagramSync.ts` сам)
+- Task 4.2: `src/ingestion/instagramSync.ts` — после `getAccountInsights` теперь сохраняет метрики (включая `unavailableMetrics` → `value: null`) как `AccountSnapshot`, не только показывает в summary
+- Task 4.2: `README.md` — добавлена ссылка на новый `DOCUMENT_CROSS_REFERENCE.md`
 - **Phase 2 — Authentication закрыта** (решение Olga, 12 августа 2026) на объёме Task 2.1–2.3 — критерий `42_IMPLEMENTATION_ROADMAP.md` §11 подтверждён тестами; account recovery/password reset и role model сознательно вне MVP-scope, см. `TASKS.md`
 - D-0001 пересмотрено: исходное решение принято без систематической проверки, переделано по 10-пунктному чек-листу с построчным чтением всех 46 документов
 - CLAUDE.md: добавлена иерархия документации (ранняя волна 04–16 vs поздняя 17–46), обновлён стек (object storage, observability)
