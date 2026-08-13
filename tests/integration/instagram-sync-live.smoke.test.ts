@@ -62,9 +62,9 @@ describe.skipIf(!hasCredentials)('instagram sync pipeline — live smoke test', 
         });
         expect(storedMetrics).toBe(summary.metricsSynced);
 
-        // 08_METRICS_FRAMEWORK.md §4 — Reels не должны свалиться в общий
-        // "video": если хотя бы одна публикация оказалась Reels, contentType
-        // обязан быть 'reel', не 'video'.
+        // Reels не должны свалиться в общий "video": если хотя бы одна
+        // публикация оказалась Reels, contentType обязан быть 'reel', не
+        // 'video' (media_type сам по себе их не различает).
         const contentTypes = new Set(storedContent.map((c) => c.contentType));
         // eslint-disable-next-line no-console
         console.log('[Task 4.1] Нормализованные contentType с реального аккаунта:', [...contentTypes]);

@@ -8,7 +8,7 @@ describe('normalizeContentType', () => {
     expect(normalizeContentType('CAROUSEL_ALBUM')).toBe('carousel');
   });
 
-  it('uses mediaProductType to distinguish Reels from regular video (08_METRICS_FRAMEWORK.md §4)', () => {
+  it('uses mediaProductType to distinguish Reels from regular video (media_type alone cannot)', () => {
     expect(normalizeContentType('VIDEO', 'REELS')).toBe('reel');
     expect(normalizeContentType('VIDEO', 'FEED')).toBe('video');
   });

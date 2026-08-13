@@ -34,10 +34,11 @@ export function validateMediaItem(item: RawMediaItem): MediaValidationResult {
 }
 
 /**
- * `08_METRICS_FRAMEWORK.md` §4 — Reels не должны сравниваться с обычным
- * видео как одинаковый формат, поэтому определяются отдельно через
- * `mediaProductType`, если платформа его вернула (media_type сам по себе
- * этого не различает — найдено при реализации этой задачи).
+ * Reels определяются отдельно через `mediaProductType`, если платформа
+ * его вернула — `media_type` сам по себе не отличает Reels от обычного
+ * видео (эмпирический факт Instagram Graph API, найдено при реализации
+ * этой задачи, не описано в документации проекта; см. комментарий на
+ * `IntegrationMediaSummary.mediaProductType`).
  *
  * Неизвестные/будущие значения `mediaType` не отбрасываются — приводятся
  * к нижнему регистру и сохраняются как есть: `Content.contentType` —

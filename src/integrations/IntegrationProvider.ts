@@ -86,9 +86,11 @@ export interface IntegrationMediaSummary {
   mediaType: string;
   /** Найдено при реализации Task 4.1: `mediaType` один в один ("VIDEO")
    * не отличает обычное видео от Reels — для этого у Instagram есть
-   * отдельное поле `media_product_type` ("FEED"/"REELS"/"STORY"). Без
-   * него normalization не может честно выполнить требование
-   * `08_METRICS_FRAMEWORK.md` §4 не путать Reels с обычным видео.
+   * отдельное поле `media_product_type` ("FEED"/"REELS"/"STORY"). Это
+   * эмпирический факт Instagram Graph API, не описанный в документации
+   * проекта; без него normalization теряет информацию о формате, что
+   * противоречит ответственности adapter'а (`26_DATA_PIPELINE.md` §10
+   * PLATFORM_ADAPTER) корректно транслировать внешний формат во внутренний.
    * Опционально — платформа может не вернуть значение. */
   mediaProductType?: string;
   publishedAt: Date;
