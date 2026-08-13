@@ -40,6 +40,14 @@ export function validateMediaItem(item: RawMediaItem): MediaValidationResult {
  * этой задачи, не описано в документации проекта; см. комментарий на
  * `IntegrationMediaSummary.mediaProductType`).
  *
+ * `'reel'` намеренно НЕ схлопывается в `'video'`, хотя иллюстративный
+ * пример в `26_DATA_PIPELINE.md` §9 (NORMALIZATION) показывает именно
+ * такое объединение (`video/reel/short_video → video`). Это осознанное
+ * отклонение от примера, не расхождение с ним по недосмотру — см.
+ * `DECISIONS.md` D-0013: Pattern Detection (Phase 7) требует различать
+ * Reels и обычное видео как разные форматы, иначе часть закономерностей
+ * невозможно будет обнаружить.
+ *
  * Неизвестные/будущие значения `mediaType` не отбрасываются — приводятся
  * к нижнему регистру и сохраняются как есть: `Content.contentType` —
  * открытая, расширяемая категория (String, не enum — DECISIONS.md D-0008),
