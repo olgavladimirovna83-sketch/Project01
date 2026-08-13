@@ -1,47 +1,68 @@
+import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import '@/integrations/bootstrap';
 import { requireSessionUserId } from '@/auth/session';
 import { externalAccountRepository } from '@/data/repositories';
+import { INSTAGRAM_OAUTH_STATE_COOKIE, INSTAGRAM_REDIRECT_URI } from '@/integrations/config';
 import { IntegrationService } from '@/integrations';
 
 /**
- * Task 3.2/3.3 — OAuth round trip для Instagram Business Login, теперь с
- * persistence через ExternalAccount (Task 3.3, `25_DATABASE_SCHEMA.md` §7).
- * redirect_uri здесь и в скрипте генерации authorize URL должны совпадать
- * буквально — это требование OAuth, не опечатка.
+ * Task 3.2/3.3/3.4 — OAuth round trip для Instagram Business Login, с
+ * persistence через ExternalAccount (Task 3.3, `25_DATABASE_SCHEMA.md` §7) и
+ * CSRF-проверкой `state` (Task 3.4) — сравнивается со значением, положенным
+ * в cookie authorize route'ом (`src/app/api/integrations/instagram/authorize`).
+ *
+ * Task 3.4 — реальный product-flow, не диагностика: результат не
+ * показывается как raw JSON, а редиректит на /integrations (тот же экран,
+ * что показывает статус) с понятным для пользователя исходом в query.
  *
  * Требует активную сессию приложения (Auth.js) — подключение внешнего
  * аккаунта должно быть привязано к конкретному пользователю нашего
- * приложения, иначе ExternalAccount.userId сохранять не к чему
- * (App Authentication ≠ Instagram Integration, но связь между ними
- * обязательна — CLAUDE.md §3.2/§4.1).
+ * приложения (App Authentication ≠ Instagram Integration, но связь между
+ * ними обязательна — CLAUDE.md §3.2/§4.1).
  */
-const REDIRECT_URI = 'https://localhost:3000/api/integrations/instagram/callback';
+function redirectToIntegrations(request: Request, params: Record<string, string>): NextResponse {
+  const url = new URL('/integrations', request.url);
+  for (const [key, value] of Object.entries(params)) {
+    url.searchParams.set(key, value);
+  }
+  return NextResponse.redirect(url);
+}
 
 export async function GET(request: Request) {
   const userId = await requireSessionUserId();
   if (!userId) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+    return NextResponse.redirect(new URL('/login', request.url));
   }
 
   const url = new URL(request.url);
   const code = url.searchParams.get('code');
+  const state = url.searchParams.get('state');
   const error = url.searchParams.get('error');
   const errorReason = url.searchParams.get('error_reason');
-  const errorDescription = url.searchParams.get('error_description');
+
+  const cookieStore = await cookies();
+  const expectedState = cookieStore.get(INSTAGRAM_OAUTH_STATE_COOKIE)?.value;
+  // state одноразовый — не переживает повторное использование независимо
+  // от исхода этого запроса.
+  cookieStore.delete(INSTAGRAM_OAUTH_STATE_COOKIE);
 
   if (error) {
-    return NextResponse.json({ error, errorReason, errorDescription }, { status: 400 });
+    return redirectToIntegrations(request, { error: errorReason ?? error });
   }
 
   if (!code) {
-    return NextResponse.json({ error: 'missing_code' }, { status: 400 });
+    return redirectToIntegrations(request, { error: 'missing_code' });
+  }
+
+  if (!state || !expectedState || state !== expectedState) {
+    return redirectToIntegrations(request, { error: 'invalid_state' });
   }
 
   try {
     const tokens = await IntegrationService.exchangeCodeForTokens('instagram', {
       code,
-      redirectUri: REDIRECT_URI,
+      redirectUri: INSTAGRAM_REDIRECT_URI,
     });
     const identity = await IntegrationService.getAccountIdentity('instagram', tokens.accessToken);
 
@@ -53,34 +74,24 @@ export async function GET(request: Request) {
       (account) => account.platform === 'instagram' && account.externalUserId === identity.externalUserId,
     );
 
-    const account = existing
-      ? await externalAccountRepository.update(existing.id, {
-          status: 'connected',
-          accessToken: tokens.accessToken,
-          tokenExpiresAt: tokens.expiresAt,
-        })
-      : await externalAccountRepository.create({
-          user: { connect: { id: userId } },
-          platform: 'instagram',
-          externalUserId: identity.externalUserId,
-          accessToken: tokens.accessToken,
-          tokenExpiresAt: tokens.expiresAt,
-        });
+    if (existing) {
+      await externalAccountRepository.update(existing.id, {
+        status: 'connected',
+        accessToken: tokens.accessToken,
+        tokenExpiresAt: tokens.expiresAt,
+      });
+    } else {
+      await externalAccountRepository.create({
+        user: { connect: { id: userId } },
+        platform: 'instagram',
+        externalUserId: identity.externalUserId,
+        accessToken: tokens.accessToken,
+        tokenExpiresAt: tokens.expiresAt,
+      });
+    }
 
-    return NextResponse.json({
-      success: true,
-      created: !existing,
-      externalAccountId: account.id,
-      username: identity.username,
-      status: account.status,
-      connectedAt: account.connectedAt.toISOString(),
-      expiresAt: account.tokenExpiresAt.toISOString(),
-    });
-  } catch (err) {
-    const e = err as Error;
-    return NextResponse.json(
-      { success: false, errorType: e.constructor.name, message: e.message },
-      { status: 500 },
-    );
+    return redirectToIntegrations(request, { connected: '1' });
+  } catch {
+    return redirectToIntegrations(request, { error: 'connection_failed' });
   }
 }

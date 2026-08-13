@@ -58,6 +58,12 @@
 - Task 3.3: `tests/integration/external-account-data-flow.smoke.test.ts` — repository против живой БД
 - Task 3.3: `IntegrationProvider.getAccountIdentity`/`IntegrationService.getAccountIdentity` — id аккаунта платформы, нужен для `ExternalAccount.externalUserId`
 - D-0010: известный security-gap — `ExternalAccount.accessToken` без encryption at rest, зафиксирован явно с зарубкой «закрыть до production»
+- Task 3.4: `src/integrations/config.ts` — общие `INSTAGRAM_REDIRECT_URI`/`INSTAGRAM_OAUTH_STATE_COOKIE`
+- Task 3.4: `src/app/api/integrations/instagram/authorize/route.ts` — реальная инициация подключения (заменяет throwaway-скрипт Task 3.2), генерирует и сохраняет CSRF `state` в cookie
+- Task 3.4: `src/app/api/integrations/instagram/disconnect/route.ts` — переводит `ExternalAccount` в `disconnected` (не удаляет), best-effort `IntegrationService.disconnect`
+- Task 3.4: `src/app/integrations/page.tsx`, `DisconnectButton.tsx` — экран статуса подключения (подключить/статус/отключить)
+- Task 3.4: `tests/e2e/integrations-instagram.spec.ts` — 4 теста через реальный браузер и БД (неаутентифицированный доступ, «не подключён», подключение/отключение с seed-данными вместо реального Instagram round trip)
+- Task 3.4: `.env.example` дополнен `INSTAGRAM_REDIRECT_URI`
 
 ### Fixed
 - `INSTAGRAM_API_REVIEW.md` §3: исправлен вывод о permissions после того, как Olga лично прошла реальную авторизацию Instagram — insights оказался отдельным разрешением от `instagram_business_basic`, не его частью, как предполагала исходная версия резюме. Подтверждённый набор: `instagram_business_basic` + insights, comments/messages/content-publish осознанно отключены
@@ -74,6 +80,8 @@
 - Task 3.2: пустая папка `src/integrations/instagram/` удалена — реальный адаптер лежит в `providers/instagram.ts`, как `providers/anthropic.ts`/`providers/r2.ts`, не в отдельной per-platform папке
 - Task 3.3: `src/app/api/integrations/instagram/callback/route.ts` — переписан: требует сессию приложения (`requireSessionUserId()`), сохраняет/обновляет `ExternalAccount` через repository вместо простого показа raw JSON
 - Task 3.3: `src/integrations/providers/instagram.ts` — приватный `fetchOwnIgUserId` переименован в `fetchAccountIdentity`, теперь возвращает и `username`, переиспользуется новым `getAccountIdentity`
+- Task 3.4: `callback/route.ts` — добавлена проверка CSRF `state` против cookie, больше не отдаёт raw JSON, редиректит на `/integrations` с исходом в query
+- Task 3.4: `src/app/page.tsx` — добавлена ссылка на `/integrations` для залогиненных пользователей
 - **Phase 2 — Authentication закрыта** (решение Olga, 12 августа 2026) на объёме Task 2.1–2.3 — критерий `42_IMPLEMENTATION_ROADMAP.md` §11 подтверждён тестами; account recovery/password reset и role model сознательно вне MVP-scope, см. `TASKS.md`
 - D-0001 пересмотрено: исходное решение принято без систематической проверки, переделано по 10-пунктному чек-листу с построчным чтением всех 46 документов
 - CLAUDE.md: добавлена иерархия документации (ранняя волна 04–16 vs поздняя 17–46), обновлён стек (object storage, observability)
