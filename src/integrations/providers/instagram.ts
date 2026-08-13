@@ -1,4 +1,5 @@
 import {
+  type IntegrationAccountIdentity,
   type IntegrationAccountInsightsParams,
   IntegrationAuthError,
   type IntegrationAuthorizationUrlParams,
@@ -98,14 +99,14 @@ function toIntegrationTokens(accessToken: string, expiresInSeconds: number): Int
   };
 }
 
-async function fetchOwnIgUserId(accessToken: string): Promise<string> {
+async function fetchAccountIdentity(accessToken: string): Promise<IntegrationAccountIdentity> {
   const url = new URL(`${GRAPH_BASE}/me`);
-  url.searchParams.set('fields', 'user_id');
+  url.searchParams.set('fields', 'user_id,username');
   url.searchParams.set('access_token', accessToken);
 
   const response = await fetch(url);
-  const body = await parseGraphResponse<{ user_id: string }>(response);
-  return body.user_id;
+  const body = await parseGraphResponse<{ user_id: string; username?: string }>(response);
+  return { externalUserId: body.user_id, username: body.username };
 }
 
 /**
@@ -189,9 +190,9 @@ export function createInstagramProvider(): IntegrationProvider {
     async getAccountInsights(
       params: IntegrationAccountInsightsParams,
     ): Promise<IntegrationInsightsResult> {
-      const igUserId = await fetchOwnIgUserId(params.accessToken);
+      const { externalUserId } = await fetchAccountIdentity(params.accessToken);
 
-      const url = new URL(`${GRAPH_BASE}/${igUserId}/insights`);
+      const url = new URL(`${GRAPH_BASE}/${externalUserId}/insights`);
       url.searchParams.set('metric', params.metrics.join(','));
       url.searchParams.set('period', params.period);
       if (params.metricType) {
@@ -219,9 +220,9 @@ export function createInstagramProvider(): IntegrationProvider {
     },
 
     async listRecentMedia(params: IntegrationListMediaParams): Promise<IntegrationMediaSummary[]> {
-      const igUserId = await fetchOwnIgUserId(params.accessToken);
+      const { externalUserId } = await fetchAccountIdentity(params.accessToken);
 
-      const url = new URL(`${GRAPH_BASE}/${igUserId}/media`);
+      const url = new URL(`${GRAPH_BASE}/${externalUserId}/media`);
       url.searchParams.set('fields', 'id,media_type,timestamp');
       url.searchParams.set('access_token', params.accessToken);
 
@@ -263,6 +264,10 @@ export function createInstagramProvider(): IntegrationProvider {
         ),
         unavailableMetrics: MEDIA_INSIGHTS_METRICS.filter((metric) => !returnedNames.has(metric)),
       };
+    },
+
+    getAccountIdentity(accessToken: string): Promise<IntegrationAccountIdentity> {
+      return fetchAccountIdentity(accessToken);
     },
 
     // disconnect не реализован — endpoint revocation для Instagram Business

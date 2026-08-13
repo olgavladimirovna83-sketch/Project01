@@ -1,4 +1,5 @@
 import type {
+  IntegrationAccountIdentity,
   IntegrationAccountInsightsParams,
   IntegrationAuthorizationUrlParams,
   IntegrationCodeExchangeParams,
@@ -70,6 +71,13 @@ export const IntegrationService = {
     params: IntegrationMediaInsightsParams,
   ): Promise<IntegrationInsightsResult> {
     return getProvider(platform).getMediaInsights(params);
+  },
+
+  getAccountIdentity(
+    platform: IntegrationPlatform,
+    accessToken: string,
+  ): Promise<IntegrationAccountIdentity> {
+    return getProvider(platform).getAccountIdentity(accessToken);
   },
 
   disconnect(platform: IntegrationPlatform, tokens: IntegrationTokens): Promise<void> {

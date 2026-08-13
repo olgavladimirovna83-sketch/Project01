@@ -1,6 +1,7 @@
 export { contentFeatureRepository } from './contentFeatureRepository';
 export { contentRepository } from './contentRepository';
 export { experimentRepository } from './experimentRepository';
+export { externalAccountRepository } from './externalAccountRepository';
 export { goalRepository } from './goalRepository';
 export { memoryRepository } from './memoryRepository';
 export { patternRepository } from './patternRepository';

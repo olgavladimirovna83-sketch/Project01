@@ -68,6 +68,15 @@ enum UserDecisionType {
   alternative_selected
 }
 
+// Task 3.3 — закрытый набор состояний подключения внешней платформы
+// (30_SECURITY_PRIVACY.md §25: disconnect обязан переводить в отдельный
+// статус, не удалять запись молча).
+enum ExternalAccountStatus {
+  connected
+  expired
+  disconnected
+}
+
 model User {
   id           String    @id @default(cuid())
   createdAt    DateTime  @default(now()) @map("created_at")
@@ -88,14 +97,15 @@ model User {
   image         String?
   passwordHash  String?   @map("password_hash")
 
-  goals           Goal[]
-  content         Content[]
-  patterns        Pattern[]
-  memories        Memory[]
-  recommendations Recommendation[]
-  decisions       UserDecision[]
-  accounts        Account[]
-  sessions        Session[]
+  goals            Goal[]
+  content          Content[]
+  patterns         Pattern[]
+  memories         Memory[]
+  recommendations  Recommendation[]
+  decisions        UserDecision[]
+  accounts         Account[]
+  sessions         Session[]
+  externalAccounts ExternalAccount[]
 
   @@map("users")
 }
@@ -165,12 +175,50 @@ model Goal {
   @@map("goals")
 }
 
+// Task 3.3 — data layer для хранения подключения внешних платформ
+// (25_DATABASE_SCHEMA.md §7 EXTERNAL_ACCOUNTS). Поля userId/platform/
+// externalUserId/status/connectedAt/lastSyncedAt — буквально из §7.
+// accessToken/tokenExpiresAt — сверх §7, но практически необходимы для
+// самой интеграции (нет отдельной сущности под токен в доках).
+//
+// SECURITY GAP (сознательный, зафиксирован в DECISIONS.md) — accessToken
+// хранится обычным текстовым полем, БЕЗ encryption at rest.
+// 30_SECURITY_PRIVACY.md §23 требует шифрование токенов внешних платформ;
+// secret manager/шифрование отложены вместе с остальной cloud-
+// инфраструктурой (D-0007). Обязательно закрыть до production.
+//
+// platform — String, не enum: открытая, расширяемая категория
+// (25_DATABASE_SCHEMA.md §70 FUTURE_MULTI_PLATFORM — схема не должна
+// предполагать одну платформу на пользователя навсегда; TikTok и другие
+// платформы упоминаются как будущее в 08_METRICS_FRAMEWORK.md §16).
+// Уникальность — по (platform, externalUserId), не по userId
+// (25_DATABASE_SCHEMA.md §53) — один пользователь может подключить
+// несколько аккаунтов, в том числе на разных платформах.
+model ExternalAccount {
+  id             String                @id @default(cuid())
+  userId         String                @map("user_id")
+  platform       String
+  externalUserId String                @map("external_user_id")
+  status         ExternalAccountStatus @default(connected)
+  connectedAt    DateTime              @default(now()) @map("connected_at")
+  lastSyncedAt   DateTime?             @map("last_synced_at")
+  accessToken    String                @map("access_token")
+  tokenExpiresAt DateTime              @map("token_expires_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([platform, externalUserId])
+  @@index([userId])
+  @@map("external_accounts")
+}
+
 model Content {
   id        String    @id @default(cuid())
   userId    String    @map("user_id")
-  // Плейсхолдер-поля до появления отдельной сущности ExternalAccount
-  // (25_DATABASE_SCHEMA.md §7, вне scope Task 1.1) — не relation, просто
-  // строковые значения от внешней платформы.
+  // Плейсхолдер-поля — ExternalAccount (выше) теперь существует как
+  // реальная сущность (Task 3.3), но здесь всё ещё простые строковые
+  // значения, не @relation: wiring в реальный внешний ключ — отдельная
+  // задача Content-sync (Phase 4+), не эта.
   externalAccountId String?   @map("external_account_id")
   externalContentId String?   @map("external_content_id")
   contentType       String    @map("content_type")

@@ -53,6 +53,11 @@
 - Task 3.2: `.env.example` дополнен `INSTAGRAM_APP_ID`/`INSTAGRAM_APP_SECRET`/`INSTAGRAM_API_VERSION`/`INSTAGRAM_TEST_ACCESS_TOKEN`
 - Task 3.2: `src/integrations/bootstrap.ts` — регистрирует `createInstagramProvider()` в `IntegrationService` (side-effect import, registry-паттерн Task 3.1)
 - Task 3.2: `src/app/api/integrations/instagram/callback/route.ts` — диагностический OAuth callback: читает `code`/`state`/`error` из редиректа, вызывает `exchangeCodeForTokens`, показывает сырой результат; не production connect-flow (нет persistence)
+- Task 3.3: `prisma/schema.prisma` — модель `ExternalAccount` (`25_DATABASE_SCHEMA.md` §7) + enum `ExternalAccountStatus`, миграция `20260813082115_external_accounts`
+- Task 3.3: `src/data/repositories/externalAccountRepository.ts` — `create`/`findByUserId`/`update`
+- Task 3.3: `tests/integration/external-account-data-flow.smoke.test.ts` — repository против живой БД
+- Task 3.3: `IntegrationProvider.getAccountIdentity`/`IntegrationService.getAccountIdentity` — id аккаунта платформы, нужен для `ExternalAccount.externalUserId`
+- D-0010: известный security-gap — `ExternalAccount.accessToken` без encryption at rest, зафиксирован явно с зарубкой «закрыть до production»
 
 ### Fixed
 - `INSTAGRAM_API_REVIEW.md` §3: исправлен вывод о permissions после того, как Olga лично прошла реальную авторизацию Instagram — insights оказался отдельным разрешением от `instagram_business_basic`, не его частью, как предполагала исходная версия резюме. Подтверждённый набор: `instagram_business_basic` + insights, comments/messages/content-publish осознанно отключены
@@ -67,6 +72,8 @@
 - Task 2.3: `src/app/api/me/route.ts` отрефакторен на `requireSessionUserId()` (без изменения поведения)
 - Task 2.3: `tests/e2e/auth-flow.spec.ts` — использует общий helper из `tests/e2e/helpers/auth.ts` вместо локальных дублей
 - Task 3.2: пустая папка `src/integrations/instagram/` удалена — реальный адаптер лежит в `providers/instagram.ts`, как `providers/anthropic.ts`/`providers/r2.ts`, не в отдельной per-platform папке
+- Task 3.3: `src/app/api/integrations/instagram/callback/route.ts` — переписан: требует сессию приложения (`requireSessionUserId()`), сохраняет/обновляет `ExternalAccount` через repository вместо простого показа raw JSON
+- Task 3.3: `src/integrations/providers/instagram.ts` — приватный `fetchOwnIgUserId` переименован в `fetchAccountIdentity`, теперь возвращает и `username`, переиспользуется новым `getAccountIdentity`
 - **Phase 2 — Authentication закрыта** (решение Olga, 12 августа 2026) на объёме Task 2.1–2.3 — критерий `42_IMPLEMENTATION_ROADMAP.md` §11 подтверждён тестами; account recovery/password reset и role model сознательно вне MVP-scope, см. `TASKS.md`
 - D-0001 пересмотрено: исходное решение принято без систематической проверки, переделано по 10-пунктному чек-листу с построчным чтением всех 46 документов
 - CLAUDE.md: добавлена иерархия документации (ранняя волна 04–16 vs поздняя 17–46), обновлён стек (object storage, observability)

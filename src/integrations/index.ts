@@ -5,6 +5,7 @@ export {
   isTokenExpired,
 } from './IntegrationProvider';
 export type {
+  IntegrationAccountIdentity,
   IntegrationAccountInsightsParams,
   IntegrationAuthorizationUrlParams,
   IntegrationCodeExchangeParams,

@@ -123,6 +123,15 @@ export interface IntegrationMediaInsightsParams {
   mediaType: string;
 }
 
+/** Найдено при реализации Task 3.3: чтобы сохранить `ExternalAccount`
+ * (25_DATABASE_SCHEMA.md §7 — поле `external_user_id`), нужен id аккаунта
+ * на стороне платформы, который контракт до этого момента никак не
+ * возвращал. */
+export interface IntegrationAccountIdentity {
+  externalUserId: string;
+  username?: string;
+}
+
 export interface IntegrationProvider {
   readonly platform: IntegrationPlatform;
 
@@ -143,6 +152,11 @@ export interface IntegrationProvider {
   listRecentMedia(params: IntegrationListMediaParams): Promise<IntegrationMediaSummary[]>;
 
   getMediaInsights(params: IntegrationMediaInsightsParams): Promise<IntegrationInsightsResult>;
+
+  /** Id аккаунта на стороне платформы (и, если доступно, username) — нужен
+   * для сохранения `ExternalAccount.externalUserId` при подключении
+   * (Task 3.3). */
+  getAccountIdentity(accessToken: string): Promise<IntegrationAccountIdentity>;
 
   /** Best-effort отзыв доступа на стороне платформы, если у неё есть для
    * этого известный endpoint. Опционален: для Instagram точный endpoint
