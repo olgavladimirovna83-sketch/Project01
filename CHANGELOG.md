@@ -51,11 +51,15 @@
 - Task 3.2: `tests/unit/instagram-authorize-url.test.ts` — unit-тест `getAuthorizationUrl` (без сети)
 - Task 3.2: `tests/integration/instagram-live.smoke.test.ts` — живой smoke-тест против реального Instagram API (пропускается без credentials, не требует Instagram-секретов в CI)
 - Task 3.2: `.env.example` дополнен `INSTAGRAM_APP_ID`/`INSTAGRAM_APP_SECRET`/`INSTAGRAM_API_VERSION`/`INSTAGRAM_TEST_ACCESS_TOKEN`
+- Task 3.2: `src/integrations/bootstrap.ts` — регистрирует `createInstagramProvider()` в `IntegrationService` (side-effect import, registry-паттерн Task 3.1)
+- Task 3.2: `src/app/api/integrations/instagram/callback/route.ts` — диагностический OAuth callback: читает `code`/`state`/`error` из редиректа, вызывает `exchangeCodeForTokens`, показывает сырой результат; не production connect-flow (нет persistence)
 
 ### Fixed
 - `INSTAGRAM_API_REVIEW.md` §3: исправлен вывод о permissions после того, как Olga лично прошла реальную авторизацию Instagram — insights оказался отдельным разрешением от `instagram_business_basic`, не его частью, как предполагала исходная версия резюме. Подтверждённый набор: `instagram_business_basic` + insights, comments/messages/content-publish осознанно отключены
 - `src/integrations/IntegrationProvider.ts`: добавлено опциональное поле `metricType` в `IntegrationAccountInsightsParams` — найдено при реализации Task 3.2, что большинство account-level метрик, кроме `reach`, требуют явный `metric_type=total_value`, не было известно на Task 3.0/3.1
 - `vitest.config.ts`: `.env` не грузился в `process.env` вообще — `DATABASE_URL` у прежних Prisma-тестов «работал» только случайно, как побочный эффект того, что `@prisma/client` сам грузит `.env` при первом импорте (и на весь процесс). Тест на Instagram (не импортирует Prisma) без этого не видел `INSTAGRAM_*`-переменные вообще. Исправлено явной загрузкой через `loadEnv` из `vite` (`test.env`) — общий фикс, полезен для любых будущих кастомных переменных, не костыль только под Instagram
+- `src/integrations/providers/instagram.ts`: `exchangeForLongLivedToken`/`refreshTokens` строили URL через версионированный путь (`/v25.0/access_token`), хотя `INSTAGRAM_API_REVIEW.md` документирует эти endpoint'ы без версии — исправлено на отдельные неверсионированные константы (не устранило `Session key invalid`, но соответствует документации)
+- **`Session key invalid` на `exchangeForLongLivedToken` — расследовано и закрыто.** Raw JSON-ответ (`type: OAuthException`, `code: 452`) подтвердил легаси-код Facebook Platform `API_EC_SESSION_INVALID`. Причина — токены из ручной кнопки "Generate Token" в Meta App Dashboard несовместимы с `ig_exchange_token`, не баг реализации: реальный browser OAuth round trip (`exchangeCodeForTokens`) прошёл чисто с первой попытки, токен на ~60 дней. В продакшене (реальные пользователи всегда идут через настоящий OAuth flow) не воспроизводится
 
 ### Changed
 - Task 2.2: `src/app/page.tsx` — стал async server component, показывает logged-in/logged-out состояние через `auth()`
