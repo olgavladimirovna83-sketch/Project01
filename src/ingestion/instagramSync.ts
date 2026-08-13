@@ -12,6 +12,7 @@ import {
 import '@/integrations/bootstrap';
 import { IntegrationAuthError, IntegrationService } from '@/integrations';
 import { normalizeContentType, validateMediaItem } from './normalize';
+import { RetriesExhaustedError, withRetry } from './retry';
 
 /**
  * Task 4.1 — первый шаг ingestion pipeline (26_DATA_PIPELINE.md §3–12,
@@ -25,6 +26,18 @@ import { normalizeContentType, validateMediaItem } from './normalize';
  * PerformanceMetric: каждый sync создаёт новые строки, не upsert.
  *
  * Сырой ответ API не сохраняется отдельно — см. DECISIONS.md D-0011.
+ *
+ * Task 4.3 — сетевые вызовы к Instagram API (getAccountInsights,
+ * listRecentMedia, getMediaInsights) обёрнуты withRetry (./retry.ts,
+ * 42_IMPLEMENTATION_ROADMAP.md §24 RETRIES): timeout — на уровне отдельного
+ * HTTP-запроса (providers/instagram.ts), retry/exponential
+ * backoff/maximum attempts — здесь. IntegrationAuthError по-прежнему не
+ * ретраится (terminal state, Task 3.1). Если попытки исчерпаны —
+ * RetriesExhaustedError, явное состояние, не молчаливый провал: число
+ * попыток попадает в SyncWarning.attempts везде, где ошибка уже и так не
+ * фатальна для всего sync (per-item, account insights); для
+ * listRecentMedia (без него синхронизировать нечего) — пробрасывается
+ * дальше как есть, тем же путём, что и раньше для прочих ошибок.
  */
 
 export class NoConnectedInstagramAccountError extends Error {
@@ -36,6 +49,16 @@ export class NoConnectedInstagramAccountError extends Error {
 export interface SyncWarning {
   externalId?: string;
   message: string;
+  /** Заполнено, если ошибка — RetriesExhaustedError: сколько попыток было
+   * сделано, прежде чем сдаться (Task 4.3, явное состояние failure). */
+  attempts?: number;
+}
+
+function warningMessage(error: Error): { message: string; attempts?: number } {
+  if (error instanceof RetriesExhaustedError) {
+    return { message: error.message, attempts: error.attempts };
+  }
+  return { message: error.message };
 }
 
 export interface SyncSummary {
@@ -67,11 +90,13 @@ export async function syncInstagramAccount(userId: string): Promise<SyncSummary>
     // здесь не должна блокировать синхронизацию публикаций — только
     // логируется предупреждением.
     try {
-      const accountInsightsResult = await IntegrationService.getAccountInsights('instagram', {
-        accessToken: account.accessToken,
-        metrics: ['reach'],
-        period: 'day',
-      });
+      const accountInsightsResult = await withRetry(() =>
+        IntegrationService.getAccountInsights('instagram', {
+          accessToken: account.accessToken,
+          metrics: ['reach'],
+          period: 'day',
+        }),
+      );
       accountInsights = accountInsightsResult.metrics;
 
       const capturedAt = new Date();
@@ -99,12 +124,15 @@ export async function syncInstagramAccount(userId: string): Promise<SyncSummary>
       if (error instanceof IntegrationAuthError) {
         throw error;
       }
-      warnings.push({ message: `account insights failed: ${(error as Error).message}` });
+      const { message, attempts } = warningMessage(error as Error);
+      warnings.push({ message: `account insights failed: ${message}`, attempts });
     }
 
-    const media = await IntegrationService.listRecentMedia('instagram', {
-      accessToken: account.accessToken,
-    });
+    const media = await withRetry(() =>
+      IntegrationService.listRecentMedia('instagram', {
+        accessToken: account.accessToken,
+      }),
+    );
 
     for (const item of media) {
       try {
@@ -135,11 +163,13 @@ export async function syncInstagramAccount(userId: string): Promise<SyncSummary>
             });
         contentSynced += 1;
 
-        const mediaInsights = await IntegrationService.getMediaInsights('instagram', {
-          accessToken: account.accessToken,
-          mediaId: item.externalId,
-          mediaType: item.mediaType,
-        });
+        const mediaInsights = await withRetry(() =>
+          IntegrationService.getMediaInsights('instagram', {
+            accessToken: account.accessToken,
+            mediaId: item.externalId,
+            mediaType: item.mediaType,
+          }),
+        );
 
         // Каждый sync создаёт НОВЫЕ строки PerformanceMetric, не upsert —
         // это уже spanshot-таблица (26_DATA_PIPELINE.md §19
@@ -178,7 +208,8 @@ export async function syncInstagramAccount(userId: string): Promise<SyncSummary>
           throw error;
         }
         contentSkipped += 1;
-        warnings.push({ externalId: item.externalId, message: (error as Error).message });
+        const { message, attempts } = warningMessage(error as Error);
+        warnings.push({ externalId: item.externalId, message, attempts });
       }
     }
 

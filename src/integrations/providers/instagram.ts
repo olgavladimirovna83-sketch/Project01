@@ -59,6 +59,28 @@ function requiredEnv(name: string): string {
   return value;
 }
 
+// Task 4.3 — 42_IMPLEMENTATION_ROADMAP.md §24 RETRIES требует timeout
+// отдельно от retry: без него зависший запрос блокирует sync неограниченно
+// (Node не применяет таймаут к fetch() по умолчанию). Аборт превращается в
+// обычный Error (не Auth/RateLimit) — withRetry (src/ingestion/retry.ts)
+// трактует его как временный сбой и ретраит.
+const REQUEST_TIMEOUT_MS = 10000;
+
+async function fetchWithTimeout(url: string | URL, init?: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } catch (error) {
+    if ((error as Error).name === 'AbortError') {
+      throw new Error(`Instagram API request timed out after ${REQUEST_TIMEOUT_MS}ms`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 interface GraphErrorBody {
   error?: {
     message?: string;
@@ -104,7 +126,7 @@ async function fetchAccountIdentity(accessToken: string): Promise<IntegrationAcc
   url.searchParams.set('fields', 'user_id,username');
   url.searchParams.set('access_token', accessToken);
 
-  const response = await fetch(url);
+  const response = await fetchWithTimeout(url);
   const body = await parseGraphResponse<{ user_id: string; username?: string }>(response);
   return { externalUserId: body.user_id, username: body.username };
 }
@@ -126,7 +148,7 @@ export async function exchangeForLongLivedToken(accessToken: string): Promise<In
   url.searchParams.set('client_secret', requiredEnv('INSTAGRAM_APP_SECRET'));
   url.searchParams.set('access_token', accessToken);
 
-  const response = await fetch(url);
+  const response = await fetchWithTimeout(url);
   const body = await parseGraphResponse<{ access_token: string; expires_in: number }>(response);
   return toIntegrationTokens(body.access_token, body.expires_in);
 }
@@ -169,7 +191,7 @@ export function createInstagramProvider(): IntegrationProvider {
         code: params.code,
       });
 
-      const response = await fetch(CODE_EXCHANGE_URL, { method: 'POST', body });
+      const response = await fetchWithTimeout(CODE_EXCHANGE_URL, { method: 'POST', body });
       const shortLived = await parseGraphResponse<{ access_token: string }>(response);
 
       // Наружу из этого метода отдаётся только финальный long-lived токен
@@ -182,7 +204,7 @@ export function createInstagramProvider(): IntegrationProvider {
       url.searchParams.set('grant_type', 'ig_refresh_token');
       url.searchParams.set('access_token', tokens.accessToken);
 
-      const response = await fetch(url);
+      const response = await fetchWithTimeout(url);
       const body = await parseGraphResponse<{ access_token: string; expires_in: number }>(response);
       return toIntegrationTokens(body.access_token, body.expires_in);
     },
@@ -200,7 +222,7 @@ export function createInstagramProvider(): IntegrationProvider {
       }
       url.searchParams.set('access_token', params.accessToken);
 
-      const response = await fetch(url);
+      const response = await fetchWithTimeout(url);
       const body = await parseGraphResponse<{
         data: Array<{ name: string; period: string; values: Array<{ value: number }> }>;
       }>(response);
@@ -229,7 +251,7 @@ export function createInstagramProvider(): IntegrationProvider {
       url.searchParams.set('fields', 'id,media_type,media_product_type,timestamp');
       url.searchParams.set('access_token', params.accessToken);
 
-      const response = await fetch(url);
+      const response = await fetchWithTimeout(url);
       const body = await parseGraphResponse<{
         data: Array<{
           id: string;
@@ -256,7 +278,7 @@ export function createInstagramProvider(): IntegrationProvider {
       url.searchParams.set('metric', MEDIA_INSIGHTS_METRICS.join(','));
       url.searchParams.set('access_token', params.accessToken);
 
-      const response = await fetch(url);
+      const response = await fetchWithTimeout(url);
       const body = await parseGraphResponse<{
         data: Array<{ name: string; values: Array<{ value: number }> }>;
       }>(response);

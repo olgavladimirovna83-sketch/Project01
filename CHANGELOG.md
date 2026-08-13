@@ -79,6 +79,8 @@
 - Task 4.2: `src/data/repositories/accountSnapshotRepository.ts` — `create`/`findByExternalAccountId`
 - Task 4.2: `DOCUMENT_CROSS_REFERENCE.md` — новый файл, реестр найденных расхождений/пробелов между `/docs` и реализацией (раздел «Известные ограничения»: account-level метрики не покрыты `25_DATABASE_SCHEMA.md`)
 - D-0014: новая сущность `AccountSnapshot` для account-level метрик — ни `PerformanceMetric`, ни `Baseline` для этого не подходят, YELLOW-решение с обоснованием
+- Task 4.3: `src/ingestion/retry.ts` — `withRetry`/`RetriesExhaustedError`, exponential backoff + maximum attempts, `IntegrationAuthError` не ретраится, `IntegrationRateLimitError.retryAfterSeconds` используется как задержка
+- Task 4.3: `tests/unit/ingestion-retry.test.ts` — 7 тестов на синтетических ошибках, без сети/таймеров реального времени
 
 ### Fixed
 - `INSTAGRAM_API_REVIEW.md` §3: исправлен вывод о permissions после того, как Olga лично прошла реальную авторизацию Instagram — insights оказался отдельным разрешением от `instagram_business_basic`, не его частью, как предполагала исходная версия резюме. Подтверждённый набор: `instagram_business_basic` + insights, comments/messages/content-publish осознанно отключены
@@ -104,6 +106,8 @@
 - Task 4.1: `src/app/api/integrations/instagram/sync/route.ts` — убран избыточный `import '@/integrations/bootstrap'` (теперь делает это `instagramSync.ts` сам)
 - Task 4.2: `src/ingestion/instagramSync.ts` — после `getAccountInsights` теперь сохраняет метрики (включая `unavailableMetrics` → `value: null`) как `AccountSnapshot`, не только показывает в summary
 - Task 4.2: `README.md` — добавлена ссылка на новый `DOCUMENT_CROSS_REFERENCE.md`
+- Task 4.3: `src/integrations/providers/instagram.ts` — все 7 вызовов `fetch()` переведены на `fetchWithTimeout` (10с, `AbortController`)
+- Task 4.3: `src/ingestion/instagramSync.ts` — `getAccountInsights`/`listRecentMedia`/`getMediaInsights` обёрнуты `withRetry`; `SyncWarning` дополнен `attempts`
 - **Phase 2 — Authentication закрыта** (решение Olga, 12 августа 2026) на объёме Task 2.1–2.3 — критерий `42_IMPLEMENTATION_ROADMAP.md` §11 подтверждён тестами; account recovery/password reset и role model сознательно вне MVP-scope, см. `TASKS.md`
 - D-0001 пересмотрено: исходное решение принято без систематической проверки, переделано по 10-пунктному чек-листу с построчным чтением всех 46 документов
 - CLAUDE.md: добавлена иерархия документации (ранняя волна 04–16 vs поздняя 17–46), обновлён стек (object storage, observability)
