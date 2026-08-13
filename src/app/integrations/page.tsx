@@ -46,6 +46,11 @@ export default async function IntegrationsPage({
       {isConnected && instagram ? (
         <>
           <p>Статус: подключён</p>
+          {instagram.username ? (
+            <p>Аккаунт: @{instagram.username}</p>
+          ) : (
+            <p>Аккаунт: username недоступен (Instagram его не вернул)</p>
+          )}
           <p>Дата подключения: {instagram.connectedAt.toLocaleString('ru-RU')}</p>
           <DisconnectButton />
         </>

@@ -63,11 +63,16 @@ test.describe('Instagram connect/disconnect screen', () => {
         externalUserId: `seeded-${Date.now()}`,
         accessToken: 'seeded-access-token',
         tokenExpiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
+        username: 'seeded_test_account',
       },
     });
 
     await page.goto('/integrations');
     await expect(page.getByText('Статус: подключён')).toBeVisible();
+    // Task 3.4 addendum: username нужен именно чтобы отличить, какой из
+    // нескольких связанных Instagram-аккаунтов подключён — проверяем, что
+    // он реально отображается, не только что статус "подключён".
+    await expect(page.getByText('Аккаунт: @seeded_test_account')).toBeVisible();
 
     await page.getByRole('button', { name: 'Отключить' }).click();
     await expect(page.getByText('Статус: не подключён')).toBeVisible();

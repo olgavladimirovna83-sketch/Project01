@@ -27,10 +27,12 @@ describe('external account data flow smoke test', () => {
       externalUserId: `ig-test-${Date.now()}`,
       accessToken: 'fake-access-token',
       tokenExpiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
+      username: 'fake_username',
       user: { connect: { id: user.id } },
     });
 
     expect(account.status).toBe('connected');
+    expect(account.username).toBe('fake_username');
 
     const found = await externalAccountRepository.findByUserId(user.id);
     expect(found).toHaveLength(1);

@@ -204,6 +204,14 @@ model ExternalAccount {
   lastSyncedAt   DateTime?             @map("last_synced_at")
   accessToken    String                @map("access_token")
   tokenExpiresAt DateTime              @map("token_expires_at")
+  // Task 3.4 — не в исходном списке полей §7/Task 3.3, добавлено по
+  // прямому запросу Olga: у неё несколько связанных Instagram-аккаунтов,
+  // и статус без имени не даёт убедиться, что подключён именно нужный.
+  // Nullable — платформа может не вернуть username (или это будущая
+  // платформа без такого понятия), различие "не пришло" vs "пустая
+  // строка" важно (08_METRICS_FRAMEWORK.md §11 data completeness
+  // принцип, применён здесь по аналогии).
+  username       String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

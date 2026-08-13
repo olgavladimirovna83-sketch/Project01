@@ -79,6 +79,7 @@ export async function GET(request: Request) {
         status: 'connected',
         accessToken: tokens.accessToken,
         tokenExpiresAt: tokens.expiresAt,
+        username: identity.username,
       });
     } else {
       await externalAccountRepository.create({
@@ -87,6 +88,7 @@ export async function GET(request: Request) {
         externalUserId: identity.externalUserId,
         accessToken: tokens.accessToken,
         tokenExpiresAt: tokens.expiresAt,
+        username: identity.username,
       });
     }
 
