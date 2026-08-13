@@ -223,12 +223,20 @@ export function createInstagramProvider(): IntegrationProvider {
       const { externalUserId } = await fetchAccountIdentity(params.accessToken);
 
       const url = new URL(`${GRAPH_BASE}/${externalUserId}/media`);
-      url.searchParams.set('fields', 'id,media_type,timestamp');
+      // media_product_type — найдено при реализации Task 4.1, нужен, чтобы
+      // отличить Reels от обычного видео (media_type сам по себе этого не
+      // делает). См. комментарий на IntegrationMediaSummary.mediaProductType.
+      url.searchParams.set('fields', 'id,media_type,media_product_type,timestamp');
       url.searchParams.set('access_token', params.accessToken);
 
       const response = await fetch(url);
       const body = await parseGraphResponse<{
-        data: Array<{ id: string; media_type: string; timestamp: string }>;
+        data: Array<{
+          id: string;
+          media_type: string;
+          media_product_type?: string;
+          timestamp: string;
+        }>;
       }>(response);
 
       return body.data
@@ -236,6 +244,7 @@ export function createInstagramProvider(): IntegrationProvider {
         .map((item) => ({
           externalId: item.id,
           mediaType: item.media_type,
+          mediaProductType: item.media_product_type,
           publishedAt: new Date(item.timestamp),
         }));
     },

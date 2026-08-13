@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { auth } from '@/auth/config';
 import { externalAccountRepository } from '@/data/repositories';
 import { DisconnectButton } from './DisconnectButton';
+import { SyncButton } from './SyncButton';
 
 const ERROR_MESSAGES: Record<string, string> = {
   access_denied: 'Вы отклонили запрос на доступ в Instagram.',
@@ -52,6 +53,11 @@ export default async function IntegrationsPage({
             <p>Аккаунт: username недоступен (Instagram его не вернул)</p>
           )}
           <p>Дата подключения: {instagram.connectedAt.toLocaleString('ru-RU')}</p>
+          <p>
+            Последняя синхронизация:{' '}
+            {instagram.lastSyncedAt ? instagram.lastSyncedAt.toLocaleString('ru-RU') : 'ещё не выполнялась'}
+          </p>
+          <SyncButton />
           <DisconnectButton />
         </>
       ) : (

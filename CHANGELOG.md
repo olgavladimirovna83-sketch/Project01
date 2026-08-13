@@ -65,6 +65,14 @@
 - Task 3.4: `tests/e2e/integrations-instagram.spec.ts` — 4 теста через реальный браузер и БД (неаутентифицированный доступ, «не подключён», подключение/отключение с seed-данными вместо реального Instagram round trip)
 - Task 3.4: `.env.example` дополнен `INSTAGRAM_REDIRECT_URI`
 - Task 3.4 (дополнение): `ExternalAccount.username` (nullable) — по запросу Olga, нужен различать несколько связанных Instagram-аккаунтов; миграция `20260813153419_external_account_username`
+- Task 4.1: `src/ingestion/normalize.ts` — чистые `validateMediaItem`/`normalizeContentType` (validation/normalization шаги ingestion pipeline, без сети/БД)
+- Task 4.1: `src/ingestion/instagramSync.ts` — `syncInstagramAccount(userId)`, оркестрация fetch→validate→normalize→store поверх `IntegrationService`
+- Task 4.1: `src/app/api/integrations/instagram/sync/route.ts` — `POST`, синхронный триггер разовой синхронизации
+- Task 4.1: `src/app/integrations/SyncButton.tsx` — кнопка «Синхронизировать» + отображение результата
+- Task 4.1: `src/data/repositories/contentRepository.ts` — `findByExternalId` (dedup-lookup по natural key)
+- Task 4.1: `tests/unit/ingestion-normalize.test.ts` — 10 тестов на синтетических данных
+- Task 4.1: `tests/integration/instagram-sync-live.smoke.test.ts` — живой smoke-тест полного pipeline против реального Instagram API (skip-if-no-credentials, как Task 3.2)
+- D-0011: сырой ответ Instagram API не сохраняется отдельно на этом этапе — только нормализованные данные, YELLOW-решение зафиксировано заранее по запросу Olga
 
 ### Fixed
 - `INSTAGRAM_API_REVIEW.md` §3: исправлен вывод о permissions после того, как Olga лично прошла реальную авторизацию Instagram — insights оказался отдельным разрешением от `instagram_business_basic`, не его частью, как предполагала исходная версия резюме. Подтверждённый набор: `instagram_business_basic` + insights, comments/messages/content-publish осознанно отключены
@@ -72,6 +80,8 @@
 - `vitest.config.ts`: `.env` не грузился в `process.env` вообще — `DATABASE_URL` у прежних Prisma-тестов «работал» только случайно, как побочный эффект того, что `@prisma/client` сам грузит `.env` при первом импорте (и на весь процесс). Тест на Instagram (не импортирует Prisma) без этого не видел `INSTAGRAM_*`-переменные вообще. Исправлено явной загрузкой через `loadEnv` из `vite` (`test.env`) — общий фикс, полезен для любых будущих кастомных переменных, не костыль только под Instagram
 - `src/integrations/providers/instagram.ts`: `exchangeForLongLivedToken`/`refreshTokens` строили URL через версионированный путь (`/v25.0/access_token`), хотя `INSTAGRAM_API_REVIEW.md` документирует эти endpoint'ы без версии — исправлено на отдельные неверсионированные константы (не устранило `Session key invalid`, но соответствует документации)
 - **`Session key invalid` на `exchangeForLongLivedToken` — расследовано и закрыто.** Raw JSON-ответ (`type: OAuthException`, `code: 452`) подтвердил легаси-код Facebook Platform `API_EC_SESSION_INVALID`. Причина — токены из ручной кнопки "Generate Token" в Meta App Dashboard несовместимы с `ig_exchange_token`, не баг реализации: реальный browser OAuth round trip (`exchangeCodeForTokens`) прошёл чисто с первой попытки, токен на ~60 дней. В продакшене (реальные пользователи всегда идут через настоящий OAuth flow) не воспроизводится
+- `src/integrations/providers/instagram.ts`: `listRecentMedia` не запрашивал `media_product_type` — `media_type` сам по себе не отличает Reels от обычного видео (оба приходят как `"VIDEO"`), что нарушало требование `08_METRICS_FRAMEWORK.md` §4 не путать форматы. Найдено и исправлено при реализации Task 4.1, подтверждено живым запросом
+- `src/ingestion/instagramSync.ts`: изначально не регистрировал Instagram-провайдер сам, полагаясь на `import '@/integrations/bootstrap'` в вызывающих route'ах — при прямом вызове (например из теста) падал с «No integration provider registered». Исправлено переносом side-effect import в сам модуль
 
 ### Changed
 - Task 2.2: `src/app/page.tsx` — стал async server component, показывает logged-in/logged-out состояние через `auth()`
@@ -84,6 +94,8 @@
 - Task 3.4: `callback/route.ts` — добавлена проверка CSRF `state` против cookie, больше не отдаёт raw JSON, редиректит на `/integrations` с исходом в query
 - Task 3.4: `src/app/page.tsx` — добавлена ссылка на `/integrations` для залогиненных пользователей
 - Task 3.4 (дополнение): `callback/route.ts` сохраняет `identity.username`; `/integrations` показывает `Аккаунт: @username`
+- Task 4.1: `src/app/integrations/page.tsx` — показывает `lastSyncedAt` и `<SyncButton />`
+- Task 4.1: `src/app/api/integrations/instagram/sync/route.ts` — убран избыточный `import '@/integrations/bootstrap'` (теперь делает это `instagramSync.ts` сам)
 - **Phase 2 — Authentication закрыта** (решение Olga, 12 августа 2026) на объёме Task 2.1–2.3 — критерий `42_IMPLEMENTATION_ROADMAP.md` §11 подтверждён тестами; account recovery/password reset и role model сознательно вне MVP-scope, см. `TASKS.md`
 - D-0001 пересмотрено: исходное решение принято без систематической проверки, переделано по 10-пунктному чек-листу с построчным чтением всех 46 документов
 - CLAUDE.md: добавлена иерархия документации (ранняя волна 04–16 vs поздняя 17–46), обновлён стек (object storage, observability)

@@ -8,6 +8,14 @@ export const contentRepository = {
   findById(id: string): Promise<Content | null> {
     return prisma.content.findUnique({ where: { id } });
   },
+  // Task 4.1 — dedup ingestion pipeline по natural key
+  // (26_DATA_PIPELINE.md §11 DEDUPLICATION); использует уже существующий
+  // unique constraint [externalAccountId, externalContentId] (Task 1.1).
+  findByExternalId(externalAccountId: string, externalContentId: string): Promise<Content | null> {
+    return prisma.content.findUnique({
+      where: { externalAccountId_externalContentId: { externalAccountId, externalContentId } },
+    });
+  },
   update(id: string, data: Prisma.ContentUpdateInput): Promise<Content> {
     return prisma.content.update({ where: { id }, data });
   },

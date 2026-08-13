@@ -84,6 +84,13 @@ export interface IntegrationInsightsResult {
 export interface IntegrationMediaSummary {
   externalId: string;
   mediaType: string;
+  /** Найдено при реализации Task 4.1: `mediaType` один в один ("VIDEO")
+   * не отличает обычное видео от Reels — для этого у Instagram есть
+   * отдельное поле `media_product_type` ("FEED"/"REELS"/"STORY"). Без
+   * него normalization не может честно выполнить требование
+   * `08_METRICS_FRAMEWORK.md` §4 не путать Reels с обычным видео.
+   * Опционально — платформа может не вернуть значение. */
+  mediaProductType?: string;
   publishedAt: Date;
 }
 
