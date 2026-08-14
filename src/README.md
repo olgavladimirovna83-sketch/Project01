@@ -7,7 +7,7 @@
 - `app/` — Next.js App Router: UI-страницы + `app/api/` (route handlers = API layer). Единственная папка, которую видит фронтенд-бандл
 - `data/` — DATA layer: Prisma Client singleton, репозитории (наполняются в Task 1.1)
 - `analysis/` — ANALYSIS layer (Task 6.1 — первая реализация: `metricsAnalytics.ts`/`accountAnalytics.ts`, deterministic analytics)
-- `knowledge/` — KNOWLEDGE layer (наполняется после Phase 1)
+- `knowledge/` — KNOWLEDGE layer (Task 7.1 — первая реализация: `analyticsMemory.ts`, первое использование `Memory`)
 - `decision/` — DECISION layer / Decision Engine (наполняется после Phase 1)
 - `ai/` — AI layer: `AIProvider` интерфейс, `AIService` (AI_SERVICE), `providers/anthropic.ts` (AI_PROVIDER_ADAPTER — единственный файл с прямым импортом `@anthropic-ai/sdk`)
 - `storage/` — `ObjectStorageService`: интерфейс + `providers/r2.ts` (единственный файл с прямым импортом AWS S3 SDK)

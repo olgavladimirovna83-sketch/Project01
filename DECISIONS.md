@@ -462,3 +462,22 @@
 **Последствия.** Не создаёт технического долга, требующего немедленного внимания. Проверить при появлении реального multi-account пользователя (Instagram + TikTok и т.п.) — вместе с этим стоит пересмотреть оба места (`accountAnalytics.ts` и `dataQualityStatus.ts`), не только одно.
 
 ---
+
+## D-0022 — Task 7.1: первое использование `Memory` покрывает 4 из 7 пунктов `42_IMPLEMENTATION_ROADMAP.md` §35 (нет evidence references/outcome/relevance); confidence отображается в число по фиксированной шкале
+
+**Дата:** 13 августа 2026
+**Статус:** Принято (YELLOW — техническая неоднозначность с безопасным решением, `CLAUDE.md` §9)
+
+**Контекст.** `42_IMPLEMENTATION_ROADMAP.md` §35 PHASE 7, KNOWLEDGE LAYER перечисляет минимум: knowledge item schema, evidence references, timestamps, source, confidence, outcome, relevance. `Memory` (модель существует с Task 1.1, впервые реально используется в Task 7.1) покрывает schema/timestamps/source/confidence — прямое соответствие полям `25_DATABASE_SCHEMA.md` §36 MEMORY (memory_id/user_id/memory_type/content/confidence/source/created_at/updated_at/status). Не покрывает: **evidence references** (§37 MEMORY_EVIDENCE — Memory должна уметь ссылаться на recommendation/outcome/content/pattern; отдельной join-таблицы нет, не входила в 10 core entities Task 1.1, D-0008), **outcome**, **relevance** (нет соответствующих полей на модели Memory вообще — они не документированы в §36 как её поля).
+
+**Решение.**
+1. Task 7.1 реализует только то, что покрывает существующая модель `Memory` как она есть — без расширения схемы. `content` (обычная строка, как и предполагает §36) неформально несёт basis наблюдения (период/аккаунт/метрика/сравнение с нормой/тренд) текстом — это не замена формальным evidence references (§37), а временный, более слабый суррогат для этого шага.
+2. `confidence` — категориальная шкала `personalBaseline.ts` (`low`/`medium`/`high`, Task 6.2/D-0019) отображается в `Memory.confidence` (`Float?`, по схеме §36) по фиксированной шкале: `low → 0.2`, `medium → 0.5`, `high → 0.8`. Заглушка, как и пороги объёма выборки в D-0019 — не откалиброванное вероятностное значение, условное числовое приближение трёх уровней.
+
+**Обоснование:**
+- Формальные evidence references потребовали бы новой сущности (`MemoryEvidence`, миграция, семантика связи с `Content`/`Pattern`/будущим `Recommendation`) — заметно больше, чем «первый шаг» Knowledge Layer. `outcome`/`relevance` пока не имеют смысла для сырого аналитического факта — они относятся к цепочке `Recommendation → Reason → Pattern → Evidence → Content → Performance` (`CLAUDE.md` §3), которой ещё не существует (Decision/AI layers — Phase 8+). Реализовывать поля, которым нечем ещё наполниться, было бы преждевременным усложнением.
+- Фиксированная шкала confidence проще и честнее, чем изобретать псевдо-точный вероятностный расчёт из категориальной оценки, у которой изначально нет статистической калибровки (пороги D-0019 сами по себе — заглушки объёма выборки, не измеренные величины).
+
+**Последствия.** `Memory`-записи Task 7.1 — частичная реализация §35, не полная. Формальные evidence references — реальный кандидат на будущую задачу, когда Decision Engine/Recommendation (Phase 8) начнёт опираться на конкретные `Memory` записи и понадобится восстанавливать цепочку `Recommendation → Reason → ... → Evidence` программно, а не текстовым описанием внутри `content`. Числовая шкала confidence подлежит пересмотру, если понадобится более точная градация, чем три уровня.
+
+---

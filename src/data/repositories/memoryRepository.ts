@@ -11,4 +11,9 @@ export const memoryRepository = {
   update(id: string, data: Prisma.MemoryUpdateInput): Promise<Memory> {
     return prisma.memory.update({ where: { id }, data });
   },
+  // Task 7.1 — первое реальное использование Memory (Task 1.1 создал модель,
+  // но до сих пор ничего в неё не писало).
+  findByUserId(userId: string): Promise<Memory[]> {
+    return prisma.memory.findMany({ where: { userId } });
+  },
 };
