@@ -19,6 +19,14 @@ export const contentRepository = {
   update(id: string, data: Prisma.ContentUpdateInput): Promise<Content> {
     return prisma.content.update({ where: { id }, data });
   },
+  // Task 8.1 — CANDIDATE_GENERATOR (23_SYSTEM_ARCHITECTURE.md §25):
+  // список кандидатов-форматов берётся из реально существующих у
+  // пользователя Content.contentType, не захардкожен. Полные строки, не
+  // только contentType — candidateScorer.ts join'ит по contentId с
+  // PerformanceMetric, чтобы посчитать per-формат производительность.
+  findByUserId(userId: string): Promise<Content[]> {
+    return prisma.content.findMany({ where: { userId } });
+  },
   // Task 5.1 — data quality status: "есть ли явные пробелы" (подключён и
   // синхронизирован, но ни одной публикации не сохранено).
   countByExternalAccountId(externalAccountId: string): Promise<number> {

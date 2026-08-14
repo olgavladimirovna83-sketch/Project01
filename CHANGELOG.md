@@ -122,6 +122,14 @@
 - Task 7.3: `src/app/api/knowledge/route.ts` — `GET`, session-protected, read-only
 - Task 7.3: `tests/integration/user-knowledge.smoke.test.ts` — 3 теста против реальной БД
 - **Phase 7 — Knowledge Layer закрыта** (решение Olga, 13 августа 2026) на объёме Task 7.1–7.3 — критерий §39 подтверждён напрямую через `GET /api/knowledge`; §36–38, жизненный цикл Pattern (§17–19) и формальные evidence references (§16/§37) — документированные, но сознательно не реализованные части темы, см. `TASKS.md`
+- Task 8.1: `src/decision/candidateGenerator.ts` — чистая `generateCandidateFormats` (23_SYSTEM_ARCHITECTURE.md §25 CANDIDATE_GENERATOR), кандидаты из реально существующих `Content.contentType`
+- Task 8.1: `src/decision/candidateScorer.ts` — чистая `scoreAndRankCandidates` (§26 CANDIDATE_SCORER/§27 RANKING_ENGINE, 21_DECISION_LOGIC.md §40 NO FALSE PRECISION), первая реализация DECISION layer
+- Task 8.1: `src/decision/recommendationCandidates.ts` — `getRankedCandidates(userId)`, оркестрация, read-only
+- Task 8.1: `src/app/api/decision/candidates/route.ts` — `GET`, session-protected
+- Task 8.1: `tests/unit/candidate-generator.test.ts` — 3 теста на синтетических данных
+- Task 8.1: `tests/unit/candidate-scorer.test.ts` — 7 тестов на синтетических данных
+- Task 8.1: `tests/integration/recommendation-candidates.smoke.test.ts` — 3 теста против реальной БД, включая проверку, что `Recommendation` остаётся пустой
+- D-0024: CANDIDATE_SCORER реализует 3 из 9 документированных факторов; ranking раздельно по метрике, не единым списком; Pattern — контекст, не фактор ранжирования — YELLOW-решение с обоснованием
 
 ### Fixed
 - `INSTAGRAM_API_REVIEW.md` §3: исправлен вывод о permissions после того, как Olga лично прошла реальную авторизацию Instagram — insights оказался отдельным разрешением от `instagram_business_basic`, не его частью, как предполагала исходная версия резюме. Подтверждённый набор: `instagram_business_basic` + insights, comments/messages/content-publish осознанно отключены
@@ -168,9 +176,10 @@
 - Task 7.2: `src/data/repositories/patternRepository.ts` — `findByUserId` (раньше был только `findById`)
 - Task 7.2: `src/data/repositories/performanceMetricRepository.ts` — `findRowsByUserId` (join через `Content.userId`, не через `ExternalAccount` — `Pattern` не привязан к конкретному внешнему аккаунту)
 - Task 7.2: `src/knowledge/analyticsMemory.ts` — `CONFIDENCE_SCORE` экспортирована, переиспользуется `patternDetection.ts`
+- Task 8.1: `src/data/repositories/contentRepository.ts` — `findByUserId` (раньше не было метода чтения по пользователю)
 - **Phase 6 — Analytics Foundation закрыта** (решение Olga, 13 августа 2026) на объёме Task 6.1–6.2 — критерий §34 выполнен; per-metric «anomaly» из §33 сознательно не реализован, зафиксирован как задача Phase 7 (Pattern Detection, `26_DATA_PIPELINE.md` §29–31), не Analytics Foundation, см. `TASKS.md`
 - **Phase 2 — Authentication закрыта** (решение Olga, 12 августа 2026) на объёме Task 2.1–2.3 — критерий `42_IMPLEMENTATION_ROADMAP.md` §11 подтверждён тестами; account recovery/password reset и role model сознательно вне MVP-scope, см. `TASKS.md`
-- D-0001 пересмотрено: исходное решение принято без систематической проверки, переделано по 10-пунктному чек-листу с построчным чтением всех 46 документов
+- D-0001 пересмотрено: исходное решение принято без систематической проверки, переделано по 10-пунктному чек-листу с построчным чтением всех 45 документов (запись поправлена 13 августа 2026 вместе с DECISIONS.md — счётчик «46» был пропущен здесь при первом исправлении)
 - CLAUDE.md: добавлена иерархия документации (ранняя волна 04–16 vs поздняя 17–46), обновлён стек (object storage, observability)
 
 ### Findings (D-0002 — полный документальный аудит)
