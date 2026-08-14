@@ -96,6 +96,12 @@
 - Task 5.3: `tests/unit/data-quality-schema-invariants.test.ts` — 4 теста на синтетических данных
 - Task 5.3: `tests/integration/data-quality-schema-invariants.smoke.test.ts` — реальная БД без нарушений + подтверждение, что настоящий дубликат отклоняется констрейнтом Postgres
 - D-0017: consistency (`42_IMPLEMENTATION_ROADMAP.md` §27) нигде не расшифрована в `/docs` — независимая проверка подтвердила находку Olga, реализация по её явному предложению, не по цитате
+- Task 6.1: `src/analysis/metricsAnalytics.ts` — чистые `summarizeMetric`/`computeMetricsAnalytics` (42_IMPLEMENTATION_ROADMAP.md §31–33), сумма/среднее/тренд по `reach`/`likes`/`saved` за период — первая реализация ANALYSIS layer
+- Task 6.1: `src/analysis/accountAnalytics.ts` — `getUserAnalytics(userId, period)`
+- Task 6.1: `src/app/api/analytics/route.ts` — `GET ?days=N`, session-protected
+- Task 6.1: `tests/unit/metrics-analytics.test.ts` — 12 тестов на синтетических данных
+- Task 6.1: `tests/integration/account-analytics.smoke.test.ts` — 2 теста против реальной БД, масштаб 25 публикаций
+- D-0018: аналитика ограничена тремя метриками (`reach`/`likes`/`saved`) — `followers_gained` не собирается ingestion'ом; тренд через сравнение половин периода, относительный порог — YELLOW-решение с обоснованием
 
 ### Fixed
 - `INSTAGRAM_API_REVIEW.md` §3: исправлен вывод о permissions после того, как Olga лично прошла реальную авторизацию Instagram — insights оказался отдельным разрешением от `instagram_business_basic`, не его частью, как предполагала исходная версия резюме. Подтверждённый набор: `instagram_business_basic` + insights, comments/messages/content-publish осознанно отключены
@@ -130,6 +136,8 @@
 - Task 5.3: `src/data/repositories/externalAccountRepository.ts`/`contentRepository.ts` — новые read-only методы группировки (`findPlatformExternalUserIdGroupCounts`, `findExternalContentIdGroupCounts`) для `schemaInvariants.ts`
 - Task 5.3: `src/dataQuality/dataQualityStatus.ts` — `AccountDataQualityStatus` дополнен `temporalConsistency`; `gaps` пополняется `temporal_inconsistency`
 - Task 5.3: `src/app/api/data-quality/route.ts` — ответ дополнен `schemaInvariantViolations` на верхнем уровне (не per-account, системная проверка)
+- Task 6.1: `src/data/repositories/performanceMetricRepository.ts` — `findRowsByExternalAccountId` дополнен `metricType`
+- Task 6.1: `src/analysis/README.md`/`src/README.md` — отражают первую реальную реализацию ANALYSIS layer
 - **Phase 2 — Authentication закрыта** (решение Olga, 12 августа 2026) на объёме Task 2.1–2.3 — критерий `42_IMPLEMENTATION_ROADMAP.md` §11 подтверждён тестами; account recovery/password reset и role model сознательно вне MVP-scope, см. `TASKS.md`
 - D-0001 пересмотрено: исходное решение принято без систематической проверки, переделано по 10-пунктному чек-листу с построчным чтением всех 46 документов
 - CLAUDE.md: добавлена иерархия документации (ранняя волна 04–16 vs поздняя 17–46), обновлён стек (object storage, observability)

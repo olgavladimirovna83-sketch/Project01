@@ -20,13 +20,24 @@ export const performanceMetricRepository = {
   // Task 5.3 — дополнено publishedAt (join через Content) для
   // temporalConsistency.ts, тот же принцип: один запрос на несколько
   // потребителей, не отдельный запрос под каждую data quality проверку.
+  // Task 6.1 — дополнено metricType: metricsAnalytics.ts вычисляет
+  // сумму/среднее/тренд per конкретный metricType (reach/likes/saved),
+  // предыдущим потребителям (completeness/anomaly/temporal) это поле не
+  // нужно, но лишнее поле их не ломает — по-прежнему один запрос на всех.
   async findRowsByExternalAccountId(externalAccountId: string): Promise<
-    Array<{ contentId: string; measuredAt: Date; value: number | null; publishedAt: Date | null }>
+    Array<{
+      contentId: string;
+      metricType: string;
+      measuredAt: Date;
+      value: number | null;
+      publishedAt: Date | null;
+    }>
   > {
     const rows = await prisma.performanceMetric.findMany({
       where: { content: { externalAccountId } },
       select: {
         contentId: true,
+        metricType: true,
         measuredAt: true,
         value: true,
         content: { select: { publishedAt: true } },
@@ -34,6 +45,7 @@ export const performanceMetricRepository = {
     });
     return rows.map((row) => ({
       contentId: row.contentId,
+      metricType: row.metricType,
       measuredAt: row.measuredAt,
       value: row.value,
       publishedAt: row.content.publishedAt,

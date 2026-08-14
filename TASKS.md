@@ -257,6 +257,23 @@
 
 ---
 
+## Phase 6 — Analytics Foundation (42_IMPLEMENTATION_ROADMAP.md §31–34)
+
+### Task 6.1 — Первая детерминированная аналитика: сумма/среднее/тренд по основным метрикам
+**Цель:** первая реализация ANALYSIS layer (`src/analysis/`, до этой задачи — только README-заготовка с Task 0.2) — простые, проверяемые, не-AI вычисления (`42_IMPLEMENTATION_ROADMAP.md` §32: «если показатель можно надёжно вычислить обычным кодом, он должен вычисляться обычным кодом») над уже сохранёнными `Content`/`PerformanceMetric`: сумма/среднее за период + тренд (растёт/падает/стабильно). Полностью на существующих данных, без Instagram API.
+**Спецификация:** `42_IMPLEMENTATION_ROADMAP.md` §31 (PHASE 6 — reproducible/testable/independent from AI/based on defined formulas), §32 («AI не должен считать всё»), §33 (ANALYTICS_OUTPUT — structured results: metric/period/value/trend); `22_DATA_MODEL.md` §10 CONTENT_PERFORMANCE (основные показатели: `reach`/`likes`/`saves`/`followers_gained`); `DECISIONS.md` D-0018 (три метрики из четырёх, обоснование ниже).
+**Найдено при формулировке:** `followers_gained` из §10 нигде не собирается — не на уровне публикации (не применимо, account-level показатель), не на уровне аккаунта (`getAccountInsights` в `syncInstagramAccount` запрашивает только `reach`, Task 4.1). Добавлять сбор сейчас означало бы новое обращение к Instagram API — прямо против формулировки задачи. `CORE_METRICS` сознательно ограничен `reach`/`likes`/`saved` (`saved`, не `saves` — так называет метрику сама Instagram API, `PerformanceMetric.metricType` хранит это значение буквально). Зафиксировано как YELLOW, `DECISIONS.md` D-0018.
+**Что входит:**
+- [`src/analysis/metricsAnalytics.ts`](src/analysis/metricsAnalytics.ts) — чистые функции: `summarizeMetric`/`computeMetricsAnalytics`. На публикацию берётся только последнее известное (по `measuredAt`) значение метрики в периоде (snapshot-семантика `PerformanceMetric`, тот же принцип, что `computeCompleteness`, Task 5.2), период фильтруется по `Content.publishedAt`. Тренд — публикации периода делятся хронологически пополам, сравниваются средние двух половин, относительный порог 10% (`DECISIONS.md` D-0018) — `up`/`down`/`stable`/`insufficient_data`.
+- [`src/analysis/accountAnalytics.ts`](src/analysis/accountAnalytics.ts) — тонкая оркестрация: `getUserAnalytics(userId, period)`, по каждому `ExternalAccount` пользователя (тот же паттерн, что `getDataQualityStatus`, Task 5.1).
+- `performanceMetricRepository.findRowsByExternalAccountId` (Task 5.2/5.3) дополнен `metricType` — один запрос обслуживает data quality (Task 5.x) и analytics (Task 6.1) разом.
+- `GET /api/analytics?days=N` (session-protected, только чтение, по умолчанию 30 дней).
+**Явно не входит:** `followers_gained` (см. находку выше — будущая задача Phase 4/Ingestion); anomaly/confidence поля из ANALYTICS_OUTPUT §33 (не применимы к простой сумме/среднему на этом этапе — anomaly для sync count уже закрыт Task 5.2 отдельно, per-metric confidence — Pattern Detection, Phase 7); UI-экран; сравнение с предыдущим периодом (comparison из §33) — только тренд внутри одного периода, следующий шаг Phase 6, не эта задача.
+**Готово, когда:** `summarizeMetric`/`computeMetricsAnalytics` корректно считают сумму/среднее/тренд на синтетических данных; используется только последний снимок метрики на публикацию, не сумма по всей истории; `GET /api/analytics` реально возвращает структурированный результат на реальной БД, включая масштаб 25 публикаций; `npx tsc --noEmit`/`npm run lint`/`npm run build`/`npm test` проходят (не считая двух заранее известных live-сбоев).
+**Статус:** Завершено. [`tests/unit/metrics-analytics.test.ts`](tests/unit/metrics-analytics.test.ts) — 12 тестов (нет данных; сумма/среднее по нескольким публикациям; фильтр по `metricType`; только последний снимок, не сумма истории; публикации вне периода исключены; `value: null` игнорируется; `insufficient_data` при < 2 публикаций; `stable`/`up`/`down` при разных сценариях; все три core-метрики разом; `followers_gained` отсутствует). [`tests/integration/account-analytics.smoke.test.ts`](tests/integration/account-analytics.smoke.test.ts) — 2 теста через реальную БД: пустой аккаунт → нули/`insufficient_data`; масштаб 25 публикаций (12 с `reach=100`, 13 с `reach=500`) → корректная сумма, тренд `up`. `npx tsc --noEmit`, `npm run lint`, `npm run build` (новый route зарегистрирован), `npm test` (12 юнит + 2 интеграционных новых — все зелёные; полный набор — 75/77, те же два заранее известных live-сбоя, не регрессия), `npm run test:e2e` (12/12) — без регрессий; dev-БД `olga` — 1 user/1 externalAccount (реальный аккаунт Olga), 0 `Content`/`PerformanceMetric` от тестов.
+
+---
+
 ## Backlog
 
 ### Консолидация пересекающихся документов
