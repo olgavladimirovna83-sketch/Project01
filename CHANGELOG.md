@@ -90,6 +90,12 @@
 - Task 5.2: `tests/unit/data-quality-completeness.test.ts` — 6 тестов на синтетических данных
 - Task 5.2: `tests/unit/data-quality-anomaly-detection.test.ts` — 7 тестов на синтетических данных
 - D-0016: sync count anomaly через кластеризацию `measuredAt` — в схеме нет отдельной сущности sync run, YELLOW-решение с обоснованием и явной оговоркой о приближённости
+- Task 5.3: `src/dataQuality/temporalConsistency.ts` — чистая `checkTemporalConsistency`, `measuredAt` раньше `publishedAt` — временна́я невозможность
+- Task 5.3: `src/dataQuality/schemaInvariants.ts` — чистая `findUniquenessViolations` + `checkSchemaInvariants`, нарушение уникальности `[platform, externalUserId]`/`[externalAccountId, externalContentId]` (defense in depth поверх уже существующих `@@unique`)
+- Task 5.3: `tests/unit/data-quality-temporal-consistency.test.ts` — 6 тестов на синтетических данных
+- Task 5.3: `tests/unit/data-quality-schema-invariants.test.ts` — 4 теста на синтетических данных
+- Task 5.3: `tests/integration/data-quality-schema-invariants.smoke.test.ts` — реальная БД без нарушений + подтверждение, что настоящий дубликат отклоняется констрейнтом Postgres
+- D-0017: consistency (`42_IMPLEMENTATION_ROADMAP.md` §27) нигде не расшифрована в `/docs` — независимая проверка подтвердила находку Olga, реализация по её явному предложению, не по цитате
 
 ### Fixed
 - `INSTAGRAM_API_REVIEW.md` §3: исправлен вывод о permissions после того, как Olga лично прошла реальную авторизацию Instagram — insights оказался отдельным разрешением от `instagram_business_basic`, не его частью, как предполагала исходная версия резюме. Подтверждённый набор: `instagram_business_basic` + insights, comments/messages/content-publish осознанно отключены
@@ -120,6 +126,10 @@
 - Task 5.1: `src/data/repositories/contentRepository.ts`/`performanceMetricRepository.ts`/`accountSnapshotRepository.ts` — новые read-only методы (`countByExternalAccountId`, `findLatestMeasuredAtByExternalAccountId`, `findLatestCapturedAt`) для data quality status
 - Task 5.2: `src/data/repositories/performanceMetricRepository.ts` — `findRowsByExternalAccountId` заменил `findLatestMeasuredAtByExternalAccountId` из Task 5.1 (не использовался больше нигде) — один запрос сырых строк обслуживает freshness/completeness/anomaly detection разом
 - Task 5.2: `src/dataQuality/dataQualityStatus.ts` — `AccountDataQualityStatus` дополнен `completeness`/`syncCountAnomaly`; `gaps` пополняется `incomplete_metrics`/`sync_count_anomaly`
+- Task 5.3: `src/data/repositories/performanceMetricRepository.ts` — `findRowsByExternalAccountId` дополнен `publishedAt` (join через `Content`) для `temporalConsistency.ts`
+- Task 5.3: `src/data/repositories/externalAccountRepository.ts`/`contentRepository.ts` — новые read-only методы группировки (`findPlatformExternalUserIdGroupCounts`, `findExternalContentIdGroupCounts`) для `schemaInvariants.ts`
+- Task 5.3: `src/dataQuality/dataQualityStatus.ts` — `AccountDataQualityStatus` дополнен `temporalConsistency`; `gaps` пополняется `temporal_inconsistency`
+- Task 5.3: `src/app/api/data-quality/route.ts` — ответ дополнен `schemaInvariantViolations` на верхнем уровне (не per-account, системная проверка)
 - **Phase 2 — Authentication закрыта** (решение Olga, 12 августа 2026) на объёме Task 2.1–2.3 — критерий `42_IMPLEMENTATION_ROADMAP.md` §11 подтверждён тестами; account recovery/password reset и role model сознательно вне MVP-scope, см. `TASKS.md`
 - D-0001 пересмотрено: исходное решение принято без систематической проверки, переделано по 10-пунктному чек-листу с построчным чтением всех 46 документов
 - CLAUDE.md: добавлена иерархия документации (ранняя волна 04–16 vs поздняя 17–46), обновлён стек (object storage, observability)

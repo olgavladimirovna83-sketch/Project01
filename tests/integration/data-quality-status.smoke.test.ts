@@ -275,4 +275,80 @@ describe('getDataQualityStatus', () => {
     expect(status.syncCountAnomaly.historicalAverageContentCount).toBe(10);
     expect(status.gaps).toContain('sync_count_anomaly');
   });
+
+  it('flags temporal_inconsistency when a metric was measured before its content was published', async () => {
+    const user = await createUser();
+    const account = await prisma.externalAccount.create({
+      data: {
+        userId: user.id,
+        platform: 'instagram',
+        externalUserId: `dq-temporal-${Date.now()}`,
+        accessToken: 'irrelevant',
+        tokenExpiresAt: new Date(Date.now() + 1000 * 60 * 60),
+        lastSyncedAt: new Date(),
+      },
+    });
+    const publishedAt = new Date('2026-08-10T12:00:00Z');
+    const measuredBeforePublished = new Date('2026-08-10T10:00:00Z');
+    const content = await prisma.content.create({
+      data: {
+        userId: user.id,
+        externalAccountId: account.id,
+        externalContentId: `dq-temporal-post-${Date.now()}`,
+        contentType: 'image',
+        publishedAt,
+      },
+    });
+    await prisma.performanceMetric.create({
+      data: {
+        contentId: content.id,
+        metricType: 'likes',
+        value: 5,
+        measuredAt: measuredBeforePublished,
+      },
+    });
+
+    const [status] = await getDataQualityStatus(user.id);
+
+    expect(status.temporalConsistency.violationCount).toBe(1);
+    expect(status.temporalConsistency.violations[0].contentId).toBe(content.id);
+    expect(status.gaps).toContain('temporal_inconsistency');
+  });
+
+  it('does not flag temporal_inconsistency for normally-ordered data', async () => {
+    const user = await createUser();
+    const account = await prisma.externalAccount.create({
+      data: {
+        userId: user.id,
+        platform: 'instagram',
+        externalUserId: `dq-temporal-ok-${Date.now()}`,
+        accessToken: 'irrelevant',
+        tokenExpiresAt: new Date(Date.now() + 1000 * 60 * 60),
+        lastSyncedAt: new Date(),
+      },
+    });
+    const publishedAt = new Date('2026-08-10T12:00:00Z');
+    const content = await prisma.content.create({
+      data: {
+        userId: user.id,
+        externalAccountId: account.id,
+        externalContentId: `dq-temporal-ok-post-${Date.now()}`,
+        contentType: 'image',
+        publishedAt,
+      },
+    });
+    await prisma.performanceMetric.create({
+      data: {
+        contentId: content.id,
+        metricType: 'likes',
+        value: 5,
+        measuredAt: new Date('2026-08-11T12:00:00Z'),
+      },
+    });
+
+    const [status] = await getDataQualityStatus(user.id);
+
+    expect(status.temporalConsistency.violationCount).toBe(0);
+    expect(status.gaps).not.toContain('temporal_inconsistency');
+  });
 });

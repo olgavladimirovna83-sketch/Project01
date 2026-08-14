@@ -24,4 +24,22 @@ export const contentRepository = {
   countByExternalAccountId(externalAccountId: string): Promise<number> {
     return prisma.content.count({ where: { externalAccountId } });
   },
+  // Task 5.3 — consistency-проверка (schemaInvariants.ts): счётчики по
+  // [externalAccountId, externalContentId] — group > 1 нарушал бы
+  // @@unique (Task 1.1). NULL-пары (плейсхолдер-значения, ещё не
+  // заполненные sync'ом) исключены — не настоящий natural key, Postgres их
+  // и не считает нарушающими уникальность (NULL != NULL). Фильтрация
+  // count>1 — в чистой findUniquenessViolations (schemaInvariants.ts),
+  // не здесь, см. комментарий в externalAccountRepository.ts.
+  async findExternalContentIdGroupCounts(): Promise<Array<{ key: string; count: number }>> {
+    const groups = await prisma.content.groupBy({
+      by: ['externalAccountId', 'externalContentId'],
+      where: { externalAccountId: { not: null }, externalContentId: { not: null } },
+      _count: { id: true },
+    });
+    return groups.map((g) => ({
+      key: `${g.externalAccountId}::${g.externalContentId}`,
+      count: g._count.id,
+    }));
+  },
 };

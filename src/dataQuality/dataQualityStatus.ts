@@ -6,6 +6,7 @@ import {
 } from '@/data/repositories';
 import { computeCompleteness, type CompletenessResult } from './completeness';
 import { detectSyncCountAnomaly, type SyncCountAnomalyResult } from './anomalyDetection';
+import { checkTemporalConsistency, type TemporalConsistencyResult } from './temporalConsistency';
 
 /**
  * Task 5.1 — Phase 5, Data Quality (42_IMPLEMENTATION_ROADMAP.md §27–30:
@@ -42,6 +43,18 @@ import { detectSyncCountAnomaly, type SyncCountAnomalyResult } from './anomalyDe
  * секции именно про "меньше записей, чем обычно" в документе нет —
  * реализация ниже (anomalyDetection.ts) инженерная интерпретация этого
  * принципа, не переложение конкретного пункта документа.
+ *
+ * Task 5.3 — consistency, последний пункт Phase 5
+ * (42_IMPLEMENTATION_ROADMAP.md §27). Перед реализацией искали отдельный
+ * детальный раздел про consistency в /docs — не нашли ни Olga, ни при
+ * повторной независимой проверке (см. DECISIONS.md D-0017 за полным
+ * списком проверенных и отклонённых кандидатов). Реализация — явное
+ * предложение Olga, не цитата документа: (1) temporalConsistency.ts —
+ * measuredAt раньше publishedAt у своего Content (временная
+ * невозможность); (2) schemaInvariants.ts — нарушение уникальности
+ * [platform, externalUserId]/[externalAccountId, externalContentId],
+ * которая уже enforced на уровне Postgres-констрейнтов (defense in depth,
+ * не per-user — отдельная системная проверка, не часть этого статуса).
  */
 
 // Порог "устарело" — заглушка, а не измеренная величина: sync сейчас
@@ -67,9 +80,10 @@ export interface AccountDataQualityStatus {
   lastAccountSnapshotAt: Date | null;
   completeness: CompletenessResult;
   syncCountAnomaly: SyncCountAnomalyResult;
+  temporalConsistency: TemporalConsistencyResult;
   /** Явные пробелы (42_IMPLEMENTATION_ROADMAP.md §29 DATA_HEALTH — "missing
    * data"): 'no_content_synced' | 'no_account_snapshots' | 'incomplete_metrics'
-   * | 'sync_count_anomaly'. */
+   * | 'sync_count_anomaly' | 'temporal_inconsistency'. */
   gaps: string[];
 }
 
@@ -98,6 +112,7 @@ export async function getDataQualityStatus(userId: string): Promise<AccountDataQ
 
       const completeness = computeCompleteness(metricRows);
       const syncCountAnomaly = detectSyncCountAnomaly(metricRows);
+      const temporalConsistency = checkTemporalConsistency(metricRows);
 
       const gaps: string[] = [];
       // Пробел имеет смысл только после хотя бы одной попытки sync —
@@ -117,6 +132,9 @@ export async function getDataQualityStatus(userId: string): Promise<AccountDataQ
       if (syncCountAnomaly.status === 'anomaly') {
         gaps.push('sync_count_anomaly');
       }
+      if (temporalConsistency.violationCount > 0) {
+        gaps.push('temporal_inconsistency');
+      }
 
       return {
         externalAccountId: account.id,
@@ -129,6 +147,7 @@ export async function getDataQualityStatus(userId: string): Promise<AccountDataQ
         lastAccountSnapshotAt,
         completeness,
         syncCountAnomaly,
+        temporalConsistency,
         gaps,
       };
     }),

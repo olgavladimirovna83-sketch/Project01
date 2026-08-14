@@ -17,12 +17,26 @@ export const performanceMetricRepository = {
   // из Task 5.1 — тот же join через Content, но данных на один запрос
   // достаточно и для freshness (Task 5.1), и для completeness/anomaly
   // (Task 5.2), не нужно два отдельных обращения к БД.
-  findRowsByExternalAccountId(
-    externalAccountId: string,
-  ): Promise<Array<{ contentId: string; measuredAt: Date; value: number | null }>> {
-    return prisma.performanceMetric.findMany({
+  // Task 5.3 — дополнено publishedAt (join через Content) для
+  // temporalConsistency.ts, тот же принцип: один запрос на несколько
+  // потребителей, не отдельный запрос под каждую data quality проверку.
+  async findRowsByExternalAccountId(externalAccountId: string): Promise<
+    Array<{ contentId: string; measuredAt: Date; value: number | null; publishedAt: Date | null }>
+  > {
+    const rows = await prisma.performanceMetric.findMany({
       where: { content: { externalAccountId } },
-      select: { contentId: true, measuredAt: true, value: true },
+      select: {
+        contentId: true,
+        measuredAt: true,
+        value: true,
+        content: { select: { publishedAt: true } },
+      },
     });
+    return rows.map((row) => ({
+      contentId: row.contentId,
+      measuredAt: row.measuredAt,
+      value: row.value,
+      publishedAt: row.content.publishedAt,
+    }));
   },
 };
