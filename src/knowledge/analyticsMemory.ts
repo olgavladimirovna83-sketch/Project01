@@ -46,7 +46,10 @@ import type { Confidence } from '@/analysis/personalBaseline';
 // Числовое приближение категориального confidence (personalBaseline.ts,
 // Task 6.2) для Memory.confidence (Float?, 25_DATABASE_SCHEMA.md §36) —
 // заглушка, как и пороги объёма выборки в D-0019, не измеренная величина.
-const CONFIDENCE_SCORE: Record<Confidence, number> = {
+// Экспортирована — переиспользуется patternDetection.ts (Task 7.2), тот
+// же принцип: одна шкала на весь Knowledge Layer, не отдельная под
+// каждую задачу.
+export const CONFIDENCE_SCORE: Record<Confidence, number> = {
   low: 0.2,
   medium: 0.5,
   high: 0.8,

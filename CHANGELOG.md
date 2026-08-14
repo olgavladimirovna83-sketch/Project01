@@ -113,6 +113,11 @@
 - Task 7.1: `tests/unit/analytics-memory.test.ts` — 2 теста на чистом форматировании контента
 - Task 7.1: `tests/integration/analytics-memory.smoke.test.ts` — 3 теста против реальной БД
 - D-0022: `Memory` покрывает 4 из 7 пунктов 42_IMPLEMENTATION_ROADMAP.md §35 (нет evidence references/outcome/relevance); confidence — числовая проекция категориальной шкалы по фиксированным значениям — YELLOW-решение с обоснованием
+- Task 7.2: `src/knowledge/patternDetection.ts` — чистая `detectMetricPattern` + `detectPatterns` (26_DATA_PIPELINE.md §28–31), первое реальное использование `Pattern` (модель с Task 1.1, не использовалась ни разу)
+- Task 7.2: `src/app/api/knowledge/patterns/route.ts` — `POST`, session-protected, state-changing
+- Task 7.2: `tests/unit/pattern-detection.test.ts` — 7 тестов на синтетических данных
+- Task 7.2: `tests/integration/pattern-detection.smoke.test.ts` — 3 теста против реальной БД, включая проверку upsert-семантики
+- D-0023: `Pattern` — гранулярность на уровне публикации (не периода), upsert (не snapshot), §16 PATTERN_EVIDENCE и жизненный цикл §17–19 не реализованы — YELLOW-решение с обоснованием
 
 ### Fixed
 - `INSTAGRAM_API_REVIEW.md` §3: исправлен вывод о permissions после того, как Olga лично прошла реальную авторизацию Instagram — insights оказался отдельным разрешением от `instagram_business_basic`, не его частью, как предполагала исходная версия резюме. Подтверждённый набор: `instagram_business_basic` + insights, comments/messages/content-publish осознанно отключены
@@ -124,6 +129,8 @@
 - `src/ingestion/instagramSync.ts`: изначально не регистрировал Instagram-провайдер сам, полагаясь на `import '@/integrations/bootstrap'` в вызывающих route'ах — при прямом вызове (например из теста) падал с «No integration provider registered». Исправлено переносом side-effect import в сам модуль
 - `src/integrations/providers/instagram.ts`: комментарий про «точное имя insights scope не подтверждено, URL не проверялся живым браузером» устарел — реальный OAuth round trip с этим `OAUTH_SCOPE` давно подтверждён (Task 3.2/3.4, `INSTAGRAM_API_REVIEW.md` §8 gap 2 закрыт 13 августа 2026). Найдено при внешнем архитектурном review (ChatGPT), комментарий обновлён на актуальное состояние знания
 - `DECISIONS.md`: счётчик «46 документов» (3 места) исправлен на 45 — `First.md` изначально существовал только в Project Knowledge, не в репозитории `/docs`, и был удалён до начала работы над проектом, никогда не входил в реальный docs-аудит. Найдено при внешнем архитектурном review
+- `DECISIONS.md` D-0022/`TASKS.md`/`CURRENT_STATUS.md`/`src/knowledge/analyticsMemory.ts`: ссылка «§37 MEMORY_EVIDENCE» в нескольких местах упоминалась без имени документа рядом с упоминаниями `42_IMPLEMENTATION_ROADMAP.md` §35/§37 — в `analyticsMemory.ts` дошло до того, что «§37» в одном комментарии означало два разных раздела двух разных документов (`25_DATABASE_SCHEMA.md` §37 MEMORY_EVIDENCE vs `42_IMPLEMENTATION_ROADMAP.md` §37 HISTORICAL DATA). Найдено Olga при независимой перепроверке цитаты — сама ссылка была верна по содержанию, добавлены явные имена документов везде, где было неоднозначно
+- `src/knowledge/patternDetection.ts`: `lastConfirmedAt` изначально не устанавливался при первом создании `Pattern` (только при повторном `update`) — интеграционный тест (Task 7.2) поймал `null` там, где ожидалась дата. Исправлено — первое обнаружение тоже подтверждение, не только повторные
 
 ### Changed
 - Task 2.2: `src/app/page.tsx` — стал async server component, показывает logged-in/logged-out состояние через `auth()`
@@ -154,6 +161,9 @@
 - Task 6.2: `src/analysis/metricsAnalytics.ts` — `MetricSummary` дополнен `baseline`/`comparisonToBaseline`/`confidence`; `summarizeMetric`/`average`/`latestValuesByContent` переиспользуют общий `metricRows.ts`
 - Task 6.2: `src/app/api/analytics/route.ts` — ответ автоматически дополнен полями baseline/comparison через расширенный тип, без изменений логики route
 - Task 7.1: `src/data/repositories/memoryRepository.ts` — `findByUserId` (раньше был только `findById`)
+- Task 7.2: `src/data/repositories/patternRepository.ts` — `findByUserId` (раньше был только `findById`)
+- Task 7.2: `src/data/repositories/performanceMetricRepository.ts` — `findRowsByUserId` (join через `Content.userId`, не через `ExternalAccount` — `Pattern` не привязан к конкретному внешнему аккаунту)
+- Task 7.2: `src/knowledge/analyticsMemory.ts` — `CONFIDENCE_SCORE` экспортирована, переиспользуется `patternDetection.ts`
 - **Phase 6 — Analytics Foundation закрыта** (решение Olga, 13 августа 2026) на объёме Task 6.1–6.2 — критерий §34 выполнен; per-metric «anomaly» из §33 сознательно не реализован, зафиксирован как задача Phase 7 (Pattern Detection, `26_DATA_PIPELINE.md` §29–31), не Analytics Foundation, см. `TASKS.md`
 - **Phase 2 — Authentication закрыта** (решение Olga, 12 августа 2026) на объёме Task 2.1–2.3 — критерий `42_IMPLEMENTATION_ROADMAP.md` §11 подтверждён тестами; account recovery/password reset и role model сознательно вне MVP-scope, см. `TASKS.md`
 - D-0001 пересмотрено: исходное решение принято без систематической проверки, переделано по 10-пунктному чек-листу с построчным чтением всех 46 документов

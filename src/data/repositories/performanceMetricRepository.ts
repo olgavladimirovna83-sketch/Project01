@@ -51,4 +51,37 @@ export const performanceMetricRepository = {
       publishedAt: row.content.publishedAt,
     }));
   },
+  // Task 7.2 — Pattern (22_DATA_MODEL.md §15) не имеет externalAccountId,
+  // только userId: закономерность формулируется на уровне пользователя
+  // ("video чаще даёт рост followers"), не привязана к конкретной
+  // подключённой платформе. Join напрямую через Content.userId, минуя
+  // ExternalAccount — не то же самое, что объединить несколько вызовов
+  // findRowsByExternalAccountId по всем аккаунтам пользователя.
+  async findRowsByUserId(userId: string): Promise<
+    Array<{
+      contentId: string;
+      metricType: string;
+      measuredAt: Date;
+      value: number | null;
+      publishedAt: Date | null;
+    }>
+  > {
+    const rows = await prisma.performanceMetric.findMany({
+      where: { content: { userId } },
+      select: {
+        contentId: true,
+        metricType: true,
+        measuredAt: true,
+        value: true,
+        content: { select: { publishedAt: true } },
+      },
+    });
+    return rows.map((row) => ({
+      contentId: row.contentId,
+      metricType: row.metricType,
+      measuredAt: row.measuredAt,
+      value: row.value,
+      publishedAt: row.content.publishedAt,
+    }));
+  },
 };
