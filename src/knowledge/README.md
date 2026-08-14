@@ -10,4 +10,8 @@
 
 `patternDetection.ts` — `detectPatterns(userId)`: первое использование `Pattern`. Простая частотная закономерность на уровне отдельной публикации (не периода) — систематически выше/ниже personal baseline (Task 6.2) для каждой из трёх основных метрик. Upsert по `(userId, patternType)`, не snapshot — единственная эволюционирующая запись, а не новая строка на прогон (`22_DATA_MODEL.md` §18 PATTERN_DECAY). Жизненный цикл (§17 PATTERN_STATUS/§18/§19), комбинации признаков и формальные evidence references (§16 PATTERN_EVIDENCE) — сознательно отложены, см. `DECISIONS.md` D-0023.
 
-Дальше наполняется по мере реализации остальных пунктов Phase 7 (§36 KNOWLEDGE_WEIGHTING, §37 HISTORICAL_DATA, §38 USER_MEMORY) и Recommendation Engine (Phase 8).
+## Task 7.3 — единый ответ «что мы знаем и почему» (`42_IMPLEMENTATION_ROADMAP.md` §39 PHASE 7 COMPLETION)
+
+`userKnowledge.ts` — `getUserKnowledge(userId)`: до этой задачи `Memory`/`Pattern` существовали только за write-триггерами (`analyticsMemory.ts`/`patternDetection.ts`, оба возвращают счётчики, не записи) — не было способа реально прочитать накопленное знание через приложение, критерий §39 не выполнялся буквально. `GET /api/knowledge` — первый read-only доступ к обеим сущностям разом. Phase 7 закрыта на этом объёме — см. `TASKS.md`.
+
+Дальше — §36 KNOWLEDGE_WEIGHTING/§37 HISTORICAL_DATA/§38 USER_MEMORY, жизненный цикл Pattern (§17–19) и формальные evidence references (§16/§37 MEMORY_EVIDENCE) остаются документированными, но не реализованными — возвращаются по мере практической необходимости, естественно всплывут при Recommendation Engine (Phase 8).

@@ -118,6 +118,10 @@
 - Task 7.2: `tests/unit/pattern-detection.test.ts` — 7 тестов на синтетических данных
 - Task 7.2: `tests/integration/pattern-detection.smoke.test.ts` — 3 теста против реальной БД, включая проверку upsert-семантики
 - D-0023: `Pattern` — гранулярность на уровне публикации (не периода), upsert (не snapshot), §16 PATTERN_EVIDENCE и жизненный цикл §17–19 не реализованы — YELLOW-решение с обоснованием
+- Task 7.3: `src/knowledge/userKnowledge.ts` — `getUserKnowledge(userId)`, первый read-only доступ к `Memory`+`Pattern` разом (42_IMPLEMENTATION_ROADMAP.md §39 PHASE 7 COMPLETION)
+- Task 7.3: `src/app/api/knowledge/route.ts` — `GET`, session-protected, read-only
+- Task 7.3: `tests/integration/user-knowledge.smoke.test.ts` — 3 теста против реальной БД
+- **Phase 7 — Knowledge Layer закрыта** (решение Olga, 13 августа 2026) на объёме Task 7.1–7.3 — критерий §39 подтверждён напрямую через `GET /api/knowledge`; §36–38, жизненный цикл Pattern (§17–19) и формальные evidence references (§16/§37) — документированные, но сознательно не реализованные части темы, см. `TASKS.md`
 
 ### Fixed
 - `INSTAGRAM_API_REVIEW.md` §3: исправлен вывод о permissions после того, как Olga лично прошла реальную авторизацию Instagram — insights оказался отдельным разрешением от `instagram_business_basic`, не его частью, как предполагала исходная версия резюме. Подтверждённый набор: `instagram_business_basic` + insights, comments/messages/content-publish осознанно отключены
