@@ -11,26 +11,31 @@ import type { Confidence } from '@/analysis/personalBaseline';
  * ничего в неё не писало) — превращает вычисляемый на лету вывод Task 6.2
  * (getUserAnalytics) в персистентный knowledge item.
  *
- * Один шаг, не вся фаза: §36 KNOWLEDGE_WEIGHTING (freshness/evidence
- * strength/relevance/user-specific history), §37 HISTORICAL_DATA
- * (decay весов для старых данных) и §38 USER_MEMORY (устойчивые
- * preferences/decisions) сюда не входят — это persistence слой поверх
- * уже готовой аналитики, простейший возможный шаг к Knowledge Layer.
+ * Один шаг, не вся фаза: `42_IMPLEMENTATION_ROADMAP.md` §36 KNOWLEDGE
+ * WEIGHTING (freshness/evidence strength/relevance/user-specific
+ * history), §37 HISTORICAL DATA (decay весов для старых данных) и §38
+ * USER MEMORY (устойчивые preferences/decisions) сюда не входят — это
+ * persistence слой поверх уже готовой аналитики, простейший возможный
+ * шаг к Knowledge Layer.
  *
  * Честная оговорка по покрытию `25_DATABASE_SCHEMA.md` §36 MEMORY: модель
  * Memory (memory_id/user_id/memory_type/content/confidence/source/
  * created_at/updated_at/status) реализована полностью и без изменений —
  * покрывает schema/timestamps/source/confidence из минимального списка
- * §35. НЕ покрыто: `evidence references` (§37 MEMORY_EVIDENCE — Memory
- * должна уметь ссылаться на recommendation/outcome/content/pattern;
- * отдельной join-таблицы нет, не входила в 10 core entities Task 1.1,
- * D-0008); `outcome`/`relevance` из §35 (нет полей на Memory — это скорее
+ * `42_IMPLEMENTATION_ROADMAP.md` §35. НЕ покрыто: `evidence references`
+ * (`25_DATABASE_SCHEMA.md` §37 MEMORY_EVIDENCE — не путать с §37 в
+ * 42_IMPLEMENTATION_ROADMAP.md выше, это другой документ и другой раздел
+ * с тем же номером: Memory должна уметь ссылаться на recommendation/
+ * outcome/content/pattern; отдельной join-таблицы нет, не входила в 10
+ * core entities Task 1.1, D-0008); `outcome`/`relevance` из
+ * 42_IMPLEMENTATION_ROADMAP.md §35 (нет полей на Memory — это скорее
  * относится к будущей Recommendation/Action/Outcome цепочке, `CLAUDE.md`
  * §3, чем к сырому аналитическому факту). `content` — обычная строка
- * (§36 предполагает именно так, не JSON/структуру), поэтому basis
- * (период/аккаунт/метрика) записывается текстом внутрь неё как
- * неформальная замена формальных evidence references — не путать с
- * настоящей реализацией §37.
+ * (`25_DATABASE_SCHEMA.md` §36 предполагает именно так, не JSON/
+ * структуру), поэтому basis (период/аккаунт/метрика) записывается
+ * текстом внутрь неё как неформальная замена формальных evidence
+ * references — не путать с настоящей реализацией
+ * `25_DATABASE_SCHEMA.md` §37 MEMORY_EVIDENCE.
  *
  * Snapshot-семантика: каждый вызов создаёт НОВЫЕ строки Memory, не upsert
  * — тот же принцип, что PerformanceMetric/AccountSnapshot (Task 4.1/4.2):
