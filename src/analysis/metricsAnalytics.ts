@@ -22,20 +22,30 @@
  *
  * Чистые функции, без сети/БД — юнит-тестируются на синтетических данных
  * (тот же паттерн, что completeness.ts/anomalyDetection.ts, Task 5.2).
+ *
+ * Task 6.2 — computeMetricsAnalytics дополнен personal baseline и
+ * сравнением периода с ним (personalBaseline.ts) — доводит структуру
+ * результата почти до полного набора 42_IMPLEMENTATION_ROADMAP.md §33
+ * ANALYTICS_OUTPUT (metric/period/value/comparison/trend/confidence;
+ * "anomaly" из §33 — отдельное понятие, уже закрыто на уровне sync count
+ * в Task 5.2, не per-metric здесь).
  */
+
+import { average, latestValuesByContent, type MetricRow } from './metricRows';
+import {
+  compareToBaseline,
+  computeBaseline,
+  type BaselineComparison,
+  type Confidence,
+  type PersonalBaseline,
+} from './personalBaseline';
+
+export type { MetricRow } from './metricRows';
 
 // followers_gained сознательно исключена — не собирается (см. комментарий
 // модуля). Список пересмотреть, когда ingestion начнёт её собирать.
 export const CORE_METRICS = ['reach', 'likes', 'saved'] as const;
 export type CoreMetric = (typeof CORE_METRICS)[number];
-
-export interface MetricRow {
-  contentId: string;
-  metricType: string;
-  value: number | null;
-  measuredAt: Date;
-  publishedAt: Date | null;
-}
 
 export interface AnalyticsPeriod {
   start: Date;
@@ -62,40 +72,13 @@ export interface MetricSummary {
    * тот же принцип). */
   average: number | null;
   trend: Trend;
-}
-
-/** Публикация → последнее известное (по measuredAt) значение конкретной
- * метрики. PerformanceMetric — snapshot-таблица (Task 4.1/4.2/§19
- * SNAPSHOT_PRINCIPLE), берём самый свежий снимок на публикацию, не сумму
- * по всем историческим снимкам — тот же принцип, что computeCompleteness
- * (Task 5.2). */
-function latestValuesByContent(
-  rows: MetricRow[],
-  metricType: string,
-): Map<string, { value: number; publishedAt: Date }> {
-  const latestRowByContent = new Map<string, MetricRow>();
-  for (const row of rows) {
-    if (row.metricType !== metricType || row.value === null || row.publishedAt === null) {
-      continue;
-    }
-    const existing = latestRowByContent.get(row.contentId);
-    if (!existing || row.measuredAt.getTime() > existing.measuredAt.getTime()) {
-      latestRowByContent.set(row.contentId, row);
-    }
-  }
-
-  const result = new Map<string, { value: number; publishedAt: Date }>();
-  for (const [contentId, row] of latestRowByContent) {
-    result.set(contentId, { value: row.value as number, publishedAt: row.publishedAt as Date });
-  }
-  return result;
-}
-
-function average(values: number[]): number | null {
-  if (values.length === 0) {
-    return null;
-  }
-  return values.reduce((sum, v) => sum + v, 0) / values.length;
+  /** Task 6.2 — личная норма пользователя (среднее по всей истории, не
+   * ограничено периодом) и сравнение этого периода с ней. */
+  baseline: PersonalBaseline;
+  comparisonToBaseline: BaselineComparison;
+  /** min(confidence baseline, confidence этого периода) —
+   * personalBaseline.ts, weakerConfidence. */
+  confidence: Confidence;
 }
 
 /**
@@ -146,14 +129,24 @@ export function summarizeMetric(
 
   const values = inPeriod.map((entry) => entry.value);
   const sum = values.reduce((total, v) => total + v, 0);
+  const periodAverage = average(values);
+
+  // Task 6.2 — baseline считается по ВСЕЙ истории (тот же rows, без
+  // фильтра по period) — намеренно: личная норма не должна сама зависеть
+  // от того же окна, которое с ней сравнивается.
+  const baseline = computeBaseline(rows, metricType);
+  const { comparison, confidence } = compareToBaseline(periodAverage, inPeriod.length, baseline);
 
   return {
     metric: metricType,
     period,
     sampleSize: inPeriod.length,
     sum,
-    average: average(values),
+    average: periodAverage,
     trend: computeTrend(inPeriod),
+    baseline,
+    comparisonToBaseline: comparison,
+    confidence,
   };
 }
 

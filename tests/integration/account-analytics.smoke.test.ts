@@ -10,6 +10,11 @@ import { getUserAnalytics } from '../../src/analysis/accountAnalytics';
  * данных (tests/unit/metrics-analytics.test.ts) — здесь только
  * end-to-end проверка wiring через реальную БД, на реалистичном
  * масштабе (25 публикаций), тем же паттерном, что Task 5.2/5.3.
+ *
+ * Task 6.2 — personal baseline + сравнение + confidence, тот же принцип:
+ * логика уже покрыта юнит-тестами (tests/unit/personal-baseline.test.ts),
+ * здесь — end-to-end через реальную БД, включая явный сценарий Olga
+ * "2-3 поста не должны давать уверенный вывод".
  */
 
 const createdUserIds: string[] = [];
@@ -106,5 +111,49 @@ describe('getUserAnalytics', () => {
     const saved = analytics.metrics.find((m) => m.metric === 'saved');
     expect(saved?.sampleSize).toBe(25);
     expect(saved?.sum).toBe(50);
+
+    // Task 6.2 — весь период (последние 30 дней) совпадает почти со всей
+    // историей (25 публикаций за 25 дней), поэтому baseline ~ среднее по
+    // всем 25: (12*100 + 13*500) / 25 = 308. При 25 публикациях в baseline
+    // confidence обязан быть 'high' (порог D-0019 — 15+).
+    expect(reach?.baseline.sampleSize).toBe(25);
+    expect(reach?.baseline.confidence).toBe('high');
+    expect(reach?.confidence).toBe('high');
+  });
+
+  it('does not report high confidence for a brand-new account with only 2 posts (Olga: "2-3 постах не давать уверенный вывод")', async () => {
+    const user = await createUser();
+    const account = await prisma.externalAccount.create({
+      data: {
+        userId: user.id,
+        platform: 'instagram',
+        externalUserId: `analytics-thin-${Date.now()}`,
+        accessToken: 'irrelevant',
+        tokenExpiresAt: new Date(Date.now() + 1000 * 60 * 60),
+      },
+    });
+
+    const now = new Date();
+    for (let i = 0; i < 2; i += 1) {
+      const content = await prisma.content.create({
+        data: {
+          userId: user.id,
+          externalAccountId: account.id,
+          externalContentId: `analytics-thin-post-${i}`,
+          contentType: 'image',
+          publishedAt: new Date(now.getTime() - i * 24 * 60 * 60 * 1000),
+        },
+      });
+      await prisma.performanceMetric.create({
+        data: { contentId: content.id, metricType: 'reach', value: 1000, measuredAt: now },
+      });
+    }
+
+    const start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const [analytics] = await getUserAnalytics(user.id, { start, end: now });
+    const reach = analytics.metrics.find((m) => m.metric === 'reach');
+
+    expect(reach?.baseline.sampleSize).toBe(2);
+    expect(reach?.confidence).toBe('low');
   });
 });

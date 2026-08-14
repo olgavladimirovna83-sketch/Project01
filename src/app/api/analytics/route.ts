@@ -8,6 +8,10 @@ const DEFAULT_PERIOD_DAYS = 30;
  * Task 6.1 — только чтение уже существующих данных, поэтому GET, тот же
  * принцип, что GET /api/data-quality (Task 5.1). `?days=N` — необязательный
  * период в днях назад от текущего момента, по умолчанию 30.
+ *
+ * Task 6.2 — каждый элемент `accounts[].metrics[]` дополнен `baseline`/
+ * `comparisonToBaseline`/`confidence` (см. metricsAnalytics.ts) — без
+ * изменений в самом route, тип уже проведён через getUserAnalytics.
  */
 export async function GET(request: NextRequest) {
   const userId = await requireSessionUserId();

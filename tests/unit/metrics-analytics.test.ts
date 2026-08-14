@@ -7,14 +7,15 @@ const day = (n: number) => new Date(Date.UTC(2026, 7, n));
 describe('summarizeMetric', () => {
   it('returns sampleSize 0 and average null when there is no data at all', () => {
     const result = summarizeMetric([], 'reach', PERIOD);
-    expect(result).toEqual({
-      metric: 'reach',
-      period: PERIOD,
-      sampleSize: 0,
-      sum: 0,
-      average: null,
-      trend: 'insufficient_data',
-    });
+    expect(result.metric).toBe('reach');
+    expect(result.period).toEqual(PERIOD);
+    expect(result.sampleSize).toBe(0);
+    expect(result.sum).toBe(0);
+    expect(result.average).toBeNull();
+    expect(result.trend).toBe('insufficient_data');
+    // Task 6.2 — baseline/comparison тоже без данных: не ложное "at_baseline".
+    expect(result.comparisonToBaseline).toBe('insufficient_data');
+    expect(result.confidence).toBe('low');
   });
 
   it('computes sum/average from one value per content', () => {
@@ -132,5 +133,27 @@ describe('computeMetricsAnalytics', () => {
   it('does not include followers_gained — not collected by ingestion yet', () => {
     const result = computeMetricsAnalytics([], PERIOD);
     expect(result.map((r) => r.metric)).not.toContain('followers_gained');
+  });
+
+  it('computes the baseline from all history, not limited to the requested period (Task 6.2)', () => {
+    const rows = [
+      // Вне периода (июль) — должно попасть в baseline, но не в sum/average периода.
+      {
+        contentId: 'old',
+        metricType: 'reach',
+        value: 50,
+        measuredAt: new Date('2026-07-01T00:00:00Z'),
+        publishedAt: new Date('2026-07-01T00:00:00Z'),
+      },
+      // Внутри периода (август).
+      { contentId: 'new', metricType: 'reach', value: 150, measuredAt: day(5), publishedAt: day(5) },
+    ];
+    const result = computeMetricsAnalytics(rows, PERIOD);
+    const reach = result.find((r) => r.metric === 'reach');
+
+    expect(reach?.sampleSize).toBe(1); // только "new" — единственная публикация периода
+    expect(reach?.average).toBe(150);
+    expect(reach?.baseline.sampleSize).toBe(2); // "old" + "new" — вся история
+    expect(reach?.baseline.average).toBe(100); // (50 + 150) / 2
   });
 });

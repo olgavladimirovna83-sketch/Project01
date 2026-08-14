@@ -102,6 +102,10 @@
 - Task 6.1: `tests/unit/metrics-analytics.test.ts` — 12 тестов на синтетических данных
 - Task 6.1: `tests/integration/account-analytics.smoke.test.ts` — 2 теста против реальной БД, масштаб 25 публикаций
 - D-0018: аналитика ограничена тремя метриками (`reach`/`likes`/`saved`) — `followers_gained` не собирается ingestion'ом; тренд через сравнение половин периода, относительный порог — YELLOW-решение с обоснованием
+- Task 6.2: `src/analysis/metricRows.ts` — общий `MetricRow`/`latestValuesByContent`/`average`, вынесены из `metricsAnalytics.ts` во избежание циклического импорта с `personalBaseline.ts`
+- Task 6.2: `src/analysis/personalBaseline.ts` — чистые `computeBaseline`/`confidenceFromSampleSize`/`compareToBaseline` (22_DATA_MODEL.md §13–14, 25_DATABASE_SCHEMA.md §16), personal baseline на лету + сравнение + confidence по объёму выборки
+- Task 6.2: `tests/unit/personal-baseline.test.ts` — 16 тестов на синтетических данных
+- D-0019: personal baseline вычисляется на лету (scope: global, без персистентности/версионирования из 25_DATABASE_SCHEMA.md §16–17); confidence — минимум из baseline и текущего периода — YELLOW-решение с обоснованием
 
 ### Fixed
 - `INSTAGRAM_API_REVIEW.md` §3: исправлен вывод о permissions после того, как Olga лично прошла реальную авторизацию Instagram — insights оказался отдельным разрешением от `instagram_business_basic`, не его частью, как предполагала исходная версия резюме. Подтверждённый набор: `instagram_business_basic` + insights, comments/messages/content-publish осознанно отключены
@@ -138,6 +142,8 @@
 - Task 5.3: `src/app/api/data-quality/route.ts` — ответ дополнен `schemaInvariantViolations` на верхнем уровне (не per-account, системная проверка)
 - Task 6.1: `src/data/repositories/performanceMetricRepository.ts` — `findRowsByExternalAccountId` дополнен `metricType`
 - Task 6.1: `src/analysis/README.md`/`src/README.md` — отражают первую реальную реализацию ANALYSIS layer
+- Task 6.2: `src/analysis/metricsAnalytics.ts` — `MetricSummary` дополнен `baseline`/`comparisonToBaseline`/`confidence`; `summarizeMetric`/`average`/`latestValuesByContent` переиспользуют общий `metricRows.ts`
+- Task 6.2: `src/app/api/analytics/route.ts` — ответ автоматически дополнен полями baseline/comparison через расширенный тип, без изменений логики route
 - **Phase 2 — Authentication закрыта** (решение Olga, 12 августа 2026) на объёме Task 2.1–2.3 — критерий `42_IMPLEMENTATION_ROADMAP.md` §11 подтверждён тестами; account recovery/password reset и role model сознательно вне MVP-scope, см. `TASKS.md`
 - D-0001 пересмотрено: исходное решение принято без систематической проверки, переделано по 10-пунктному чек-листу с построчным чтением всех 46 документов
 - CLAUDE.md: добавлена иерархия документации (ранняя волна 04–16 vs поздняя 17–46), обновлён стек (object storage, observability)
