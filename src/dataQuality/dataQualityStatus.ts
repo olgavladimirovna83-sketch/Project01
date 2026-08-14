@@ -4,6 +4,8 @@ import {
   externalAccountRepository,
   performanceMetricRepository,
 } from '@/data/repositories';
+import { computeCompleteness, type CompletenessResult } from './completeness';
+import { detectSyncCountAnomaly, type SyncCountAnomalyResult } from './anomalyDetection';
 
 /**
  * Task 5.1 — Phase 5, Data Quality (42_IMPLEMENTATION_ROADMAP.md §27–30:
@@ -23,6 +25,23 @@ import {
  * 'expired' (IntegrationAuthError, Task 3.1/4.1). Персистентная история
  * sync-попыток (нужна, если понадобится больше, чем текущий статус) —
  * кандидат на будущую задачу, не обязательна для Task 5.1.
+ *
+ * Task 5.2 — completeness (26_DATA_PIPELINE.md §56 DATA_QUALITY/§57
+ * QUALITY_IMPACT) и sync count anomaly detection добавлены поверх того же
+ * набора PerformanceMetric-строк, что уже читается для lastContentMetricAt
+ * (см. completeness.ts/anomalyDetection.ts — чистые функции, юнит-тесты без
+ * БД). Полностью на уже сохранённых данных, без обращений к Instagram API,
+ * как и попросила Olga.
+ *
+ * Уточнение цитаты при формулировке: Olga сослалась на §35–36
+ * (SKELETON_CRITERIA/SKELETON_UPDATE) как на источник для anomaly
+ * detection — при проверке эти секции оказались про другое (Content
+ * Skeleton, Recommendation Engine), не про аномалии объёма синхронизации.
+ * Более точные секции — §56/§57 (см. выше, для completeness) и общий
+ * принцип "suspicious" как категория качества данных (§56); отдельной
+ * секции именно про "меньше записей, чем обычно" в документе нет —
+ * реализация ниже (anomalyDetection.ts) инженерная интерпретация этого
+ * принципа, не переложение конкретного пункта документа.
  */
 
 // Порог "устарело" — заглушка, а не измеренная величина: sync сейчас
@@ -46,8 +65,11 @@ export interface AccountDataQualityStatus {
   freshness: Freshness;
   lastContentMetricAt: Date | null;
   lastAccountSnapshotAt: Date | null;
+  completeness: CompletenessResult;
+  syncCountAnomaly: SyncCountAnomalyResult;
   /** Явные пробелы (42_IMPLEMENTATION_ROADMAP.md §29 DATA_HEALTH — "missing
-   * data"): 'no_content_synced' | 'no_account_snapshots'. */
+   * data"): 'no_content_synced' | 'no_account_snapshots' | 'incomplete_metrics'
+   * | 'sync_count_anomaly'. */
   gaps: string[];
 }
 
@@ -63,11 +85,19 @@ export async function getDataQualityStatus(userId: string): Promise<AccountDataQ
 
   return Promise.all(
     accounts.map(async (account) => {
-      const [contentCount, lastContentMetricAt, lastAccountSnapshotAt] = await Promise.all([
+      const [contentCount, metricRows, lastAccountSnapshotAt] = await Promise.all([
         contentRepository.countByExternalAccountId(account.id),
-        performanceMetricRepository.findLatestMeasuredAtByExternalAccountId(account.id),
+        performanceMetricRepository.findRowsByExternalAccountId(account.id),
         accountSnapshotRepository.findLatestCapturedAt(account.id),
       ]);
+
+      const lastContentMetricAt =
+        metricRows.length > 0
+          ? new Date(Math.max(...metricRows.map((row) => row.measuredAt.getTime())))
+          : null;
+
+      const completeness = computeCompleteness(metricRows);
+      const syncCountAnomaly = detectSyncCountAnomaly(metricRows);
 
       const gaps: string[] = [];
       // Пробел имеет смысл только после хотя бы одной попытки sync —
@@ -81,6 +111,12 @@ export async function getDataQualityStatus(userId: string): Promise<AccountDataQ
           gaps.push('no_account_snapshots');
         }
       }
+      if (completeness.completenessRatio !== null && completeness.completenessRatio < 1) {
+        gaps.push('incomplete_metrics');
+      }
+      if (syncCountAnomaly.status === 'anomaly') {
+        gaps.push('sync_count_anomaly');
+      }
 
       return {
         externalAccountId: account.id,
@@ -91,6 +127,8 @@ export async function getDataQualityStatus(userId: string): Promise<AccountDataQ
         freshness: getFreshness(account.lastSyncedAt),
         lastContentMetricAt,
         lastAccountSnapshotAt,
+        completeness,
+        syncCountAnomaly,
         gaps,
       };
     }),

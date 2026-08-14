@@ -7,6 +7,18 @@ import { getDataQualityStatus } from '../../src/dataQuality/dataQualityStatus';
  * smoke-тесты в проекте. Не делает никаких сетевых вызовов к Instagram —
  * getDataQualityStatus только читает уже существующие таблицы, поэтому
  * тест не gated по INSTAGRAM_*-credentials, в отличие от sync-тестов.
+ *
+ * Task 5.2 — completeness/anomaly detection логика (computeCompleteness/
+ * detectSyncCountAnomaly) уже покрыта юнит-тестами на синтетических данных
+ * (tests/unit/data-quality-completeness.test.ts,
+ * tests/unit/data-quality-anomaly-detection.test.ts) — здесь только
+ * end-to-end проверка wiring через реальную БД. Реальный live-датасет
+ * Olga (25 публикаций/175 метрик), упомянутый в постановке задачи, на
+ * момент реализации в dev-БД не сохранён (аккаунт сейчас disconnected,
+ * 0 Content) — та живая проверка была временными данными throwaway-тестов
+ * Task 4.1/4.3, удалёнными в afterAll, не персистентным датасетом.
+ * Тесты ниже сеют такого же масштаба синтетические данные напрямую —
+ * ровно то, что Olga попросила ("живой API не нужен").
  */
 
 const createdUserIds: string[] = [];
@@ -153,5 +165,114 @@ describe('getDataQualityStatus', () => {
     const user = await createUser();
     const result = await getDataQualityStatus(user.id);
     expect(result).toEqual([]);
+  });
+
+  it('computes completeness at realistic scale (25 posts) and flags incomplete_metrics when some are missing', async () => {
+    const user = await createUser();
+    const account = await prisma.externalAccount.create({
+      data: {
+        userId: user.id,
+        platform: 'instagram',
+        externalUserId: `dq-completeness-${Date.now()}`,
+        accessToken: 'irrelevant',
+        tokenExpiresAt: new Date(Date.now() + 1000 * 60 * 60),
+        lastSyncedAt: new Date(),
+      },
+    });
+
+    const measuredAt = new Date();
+    // 17 публикаций с полным набором метрик (все value != null), 8 —
+    // с хотя бы одной недоступной метрикой (value: null,
+    // 08_METRICS_FRAMEWORK.md §11 unavailableMetrics) — тот же 20-элементный
+    // масштаб примера из 26_DATA_PIPELINE.md §57, расширенный до 25.
+    for (let i = 0; i < 25; i += 1) {
+      const content = await prisma.content.create({
+        data: {
+          userId: user.id,
+          externalAccountId: account.id,
+          externalContentId: `dq-post-${i}`,
+          contentType: 'image',
+        },
+      });
+      const isIncomplete = i < 8;
+      await prisma.performanceMetric.createMany({
+        data: [
+          { contentId: content.id, metricType: 'likes', value: 10, measuredAt },
+          { contentId: content.id, metricType: 'reach', value: 20, measuredAt },
+          {
+            contentId: content.id,
+            metricType: 'saved',
+            value: isIncomplete ? null : 5,
+            measuredAt,
+          },
+        ],
+      });
+    }
+
+    const [status] = await getDataQualityStatus(user.id);
+
+    expect(status.completeness.totalContentWithMetrics).toBe(25);
+    expect(status.completeness.completeContentCount).toBe(17);
+    expect(status.completeness.completenessRatio).toBeCloseTo(17 / 25);
+    expect(status.gaps).toContain('incomplete_metrics');
+  });
+
+  it('flags sync_count_anomaly when the most recent sync stored far fewer posts than history', async () => {
+    const user = await createUser();
+    const account = await prisma.externalAccount.create({
+      data: {
+        userId: user.id,
+        platform: 'instagram',
+        externalUserId: `dq-anomaly-${Date.now()}`,
+        accessToken: 'irrelevant',
+        tokenExpiresAt: new Date(Date.now() + 1000 * 60 * 60),
+        lastSyncedAt: new Date(),
+      },
+    });
+
+    // Два исторических прогона по 10 публикаций (дни -2/-1), последний —
+    // только 2 (день 0). Даты далеко друг от друга по времени — заведомо
+    // больше SYNC_RUN_GAP_MS, чтобы кластеризация надёжно различила прогоны.
+    const runDates = [
+      new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+      new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+      new Date(),
+    ];
+    const runSizes = [10, 10, 2];
+
+    for (let run = 0; run < runSizes.length; run += 1) {
+      for (let i = 0; i < runSizes[run]; i += 1) {
+        const content = await prisma.content.upsert({
+          where: {
+            externalAccountId_externalContentId: {
+              externalAccountId: account.id,
+              externalContentId: `dq-anomaly-post-${i}`,
+            },
+          },
+          create: {
+            userId: user.id,
+            externalAccountId: account.id,
+            externalContentId: `dq-anomaly-post-${i}`,
+            contentType: 'image',
+          },
+          update: {},
+        });
+        await prisma.performanceMetric.create({
+          data: {
+            contentId: content.id,
+            metricType: 'likes',
+            value: 1,
+            measuredAt: runDates[run],
+          },
+        });
+      }
+    }
+
+    const [status] = await getDataQualityStatus(user.id);
+
+    expect(status.syncCountAnomaly.status).toBe('anomaly');
+    expect(status.syncCountAnomaly.lastRunContentCount).toBe(2);
+    expect(status.syncCountAnomaly.historicalAverageContentCount).toBe(10);
+    expect(status.gaps).toContain('sync_count_anomaly');
   });
 });

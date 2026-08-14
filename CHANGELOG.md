@@ -85,6 +85,11 @@
 - Task 5.1: `src/app/api/data-quality/route.ts` — `GET`, session-protected
 - Task 5.1: `tests/integration/data-quality-status.smoke.test.ts` — 6 тестов против реальной БД, без сетевых вызовов
 - D-0015: `SyncWarning` (Task 4.3) не персистится — `hasRecentFailure` в data quality status основан только на `ExternalAccount.status`, YELLOW-решение с обоснованием
+- Task 5.2: `src/dataQuality/completeness.ts` — чистая `computeCompleteness` (26_DATA_PIPELINE.md §56–57), доля публикаций с полным набором метрик
+- Task 5.2: `src/dataQuality/anomalyDetection.ts` — чистая `detectSyncCountAnomaly`, кластеризация по разрыву времени + относительный порог (не абсолютный)
+- Task 5.2: `tests/unit/data-quality-completeness.test.ts` — 6 тестов на синтетических данных
+- Task 5.2: `tests/unit/data-quality-anomaly-detection.test.ts` — 7 тестов на синтетических данных
+- D-0016: sync count anomaly через кластеризацию `measuredAt` — в схеме нет отдельной сущности sync run, YELLOW-решение с обоснованием и явной оговоркой о приближённости
 
 ### Fixed
 - `INSTAGRAM_API_REVIEW.md` §3: исправлен вывод о permissions после того, как Olga лично прошла реальную авторизацию Instagram — insights оказался отдельным разрешением от `instagram_business_basic`, не его частью, как предполагала исходная версия резюме. Подтверждённый набор: `instagram_business_basic` + insights, comments/messages/content-publish осознанно отключены
@@ -113,6 +118,8 @@
 - Task 4.3: `src/integrations/providers/instagram.ts` — все 7 вызовов `fetch()` переведены на `fetchWithTimeout` (10с, `AbortController`)
 - Task 4.3: `src/ingestion/instagramSync.ts` — `getAccountInsights`/`listRecentMedia`/`getMediaInsights` обёрнуты `withRetry`; `SyncWarning` дополнен `attempts`
 - Task 5.1: `src/data/repositories/contentRepository.ts`/`performanceMetricRepository.ts`/`accountSnapshotRepository.ts` — новые read-only методы (`countByExternalAccountId`, `findLatestMeasuredAtByExternalAccountId`, `findLatestCapturedAt`) для data quality status
+- Task 5.2: `src/data/repositories/performanceMetricRepository.ts` — `findRowsByExternalAccountId` заменил `findLatestMeasuredAtByExternalAccountId` из Task 5.1 (не использовался больше нигде) — один запрос сырых строк обслуживает freshness/completeness/anomaly detection разом
+- Task 5.2: `src/dataQuality/dataQualityStatus.ts` — `AccountDataQualityStatus` дополнен `completeness`/`syncCountAnomaly`; `gaps` пополняется `incomplete_metrics`/`sync_count_anomaly`
 - **Phase 2 — Authentication закрыта** (решение Olga, 12 августа 2026) на объёме Task 2.1–2.3 — критерий `42_IMPLEMENTATION_ROADMAP.md` §11 подтверждён тестами; account recovery/password reset и role model сознательно вне MVP-scope, см. `TASKS.md`
 - D-0001 пересмотрено: исходное решение принято без систематической проверки, переделано по 10-пунктному чек-листу с построчным чтением всех 46 документов
 - CLAUDE.md: добавлена иерархия документации (ранняя волна 04–16 vs поздняя 17–46), обновлён стек (object storage, observability)
