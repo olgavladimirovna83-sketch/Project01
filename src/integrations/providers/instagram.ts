@@ -41,14 +41,17 @@ const REFRESH_TOKEN_URL = 'https://graph.instagram.com/refresh_access_token';
 // addendum): instagram_business_basic + отдельное insights-разрешение.
 // Comments/messages/content-publish осознанно не запрашиваются.
 //
-// Точное каноническое имя scope для insights в Business Login остаётся
-// открытым вопросом (INSTAGRAM_API_REVIEW.md §8, gap 2) — официальная
-// сводная таблица permissions Meta называет для этой функции только старый
-// instagram_manage_insights (Facebook Login-эра). instagram_business_manage_insights
-// ниже — наиболее вероятный современный эквивалент, но не подтверждён
-// один-в-один по имени: этот URL ещё не проверялся живым браузером
-// (exchangeCodeForTokens не тестируется в Task 3.2 по той же причине —
-// см. TASKS.md).
+// Точное каноническое имя scope для insights в Business Login — закрытый
+// вопрос (INSTAGRAM_API_REVIEW.md §8, gap 2, закрыто 13 августа 2026):
+// реальный OAuth authorize-запрос с этим OAUTH_SCOPE прошёл живую
+// проверку через настоящий браузер (Task 3.2/3.4) — консент-экран, code,
+// exchangeCodeForTokens отработал чисто, итоговый токен получил рабочий
+// доступ к insights endpoints (getAccountInsights подтверждён живыми
+// данными аккаунта Olga). Официальная сводная таблица permissions Meta
+// по-прежнему называет для этой функции только старый scope
+// instagram_manage_insights (Facebook Login-эра) — само имя строки не
+// подтверждено дословно документацией, но связка permissions в целом
+// подтверждена достаточной на практике, не только предположительно.
 const OAUTH_SCOPE = 'instagram_business_basic,instagram_business_manage_insights';
 
 function requiredEnv(name: string): string {
