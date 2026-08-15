@@ -11,6 +11,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "test:live": "vitest run --config vitest.live.config.ts",
+    "test:live-ai": "vitest run --config vitest.live.config.ts tests/integration/decision-explanation-live.smoke.test.ts tests/integration/content-suggestion-live.smoke.test.ts",
+    "test:live-instagram": "vitest run --config vitest.live.config.ts tests/integration/instagram-live.smoke.test.ts tests/integration/instagram-sync-live.smoke.test.ts",
     "seed:content-knowledge": "tsx prisma/seedContentKnowledge.ts"
   },
   "dependencies": {

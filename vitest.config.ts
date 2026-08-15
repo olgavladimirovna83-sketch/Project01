@@ -1,24 +1,23 @@
-import path from 'node:path';
-import { loadEnv } from 'vite';
 import { defineConfig } from 'vitest/config';
+import { sharedResolve, sharedTestConfig } from './vitest.shared';
 
+/**
+ * Обычный прогон (`npm test`). Живые тесты против настоящих платных/внешних
+ * API (Anthropic — Task 9.1/9.4; Instagram — Task 3.2/4.1) НЕ входят сюда —
+ * прямое правило Olga (15 августа 2026): реальные оплачиваемые/внешние
+ * вызовы не должны запускаться "заодно, по привычке" при каждом обычном
+ * прогоне, только по явному запросу. Обычный прогон продолжает проверять
+ * ту же AI-логику через уже существующие integration-тесты с подменённым
+ * `generate` (`decision-explanation.smoke.test.ts`/
+ * `content-suggestion.smoke.test.ts`) — они бесплатны и уже покрывают
+ * поведение. Живые тесты запускаются отдельно — см. `vitest.live.config.ts`
+ * и `npm run test:live`/`test:live-ai`/`test:live-instagram`.
+ */
 export default defineConfig({
-  resolve: {
-    // Зеркалирует tsconfig.json paths ("@/*": ["./src/*"]) — Vitest не
-    // читает tsconfig paths автоматически, только tsc/Next.js.
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-    },
-  },
+  resolve: sharedResolve,
   test: {
-    environment: 'node',
+    ...sharedTestConfig,
     include: ['tests/unit/**/*.test.ts', 'tests/integration/**/*.test.ts'],
-    // Явная загрузка .env в process.env для всех тестов (Task 3.2 — найдено,
-    // что до этого DATABASE_URL "работал" только случайно, как побочный
-    // эффект того, что @prisma/client сам грузит .env при первом импорте;
-    // тесты, не трогающие Prisma (например INSTAGRAM_* в live smoke test),
-    // без этого не видели свои переменные вообще). loadEnv с пустым префиксом
-    // грузит все переменные, не только VITE_*.
-    env: loadEnv('', process.cwd(), ''),
+    exclude: ['tests/integration/**/*-live.smoke.test.ts'],
   },
 });
