@@ -14,9 +14,12 @@ describe('contentKnowledgeSeedData entries', () => {
     expect(entries.length).toBeGreaterThanOrEqual(15);
   });
 
-  it('every entry has non-empty category/title/content/source', () => {
+  it('every entry has at least one non-empty category tag, and non-empty title/content/source', () => {
     for (const entry of entries) {
-      expect(entry.category.trim().length).toBeGreaterThan(0);
+      expect(entry.categories.length).toBeGreaterThan(0);
+      for (const category of entry.categories) {
+        expect(category.trim().length).toBeGreaterThan(0);
+      }
       expect(entry.title.trim().length).toBeGreaterThan(0);
       expect(entry.content.trim().length).toBeGreaterThan(0);
       expect(entry.source.trim().length).toBeGreaterThan(0);
@@ -36,9 +39,14 @@ describe('contentKnowledgeSeedData entries', () => {
 
   it('includes all 7 headline rules from the supplement file', () => {
     const headlineRules = entries.filter(
-      (e) => e.category === 'headline_rule' && e.source === 'Полное руководство дополнительно.pdf',
+      (e) => e.categories.includes('headline_rule') && e.source === 'Полное руководство дополнительно.pdf',
     );
     expect(headlineRules).toHaveLength(7);
+  });
+
+  it('has at least one entry tagged with more than one category (D-0033)', () => {
+    const multiTagged = entries.filter((e) => e.categories.length > 1);
+    expect(multiTagged.length).toBeGreaterThan(0);
   });
 
   it('includes the weekly hook system (7 days, Mon-Sun) from the main guide, Section 1', () => {

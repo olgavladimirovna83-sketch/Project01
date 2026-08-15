@@ -5,7 +5,7 @@ import type { ContentKnowledge } from '@prisma/client';
 function buildKnowledge(overrides: Partial<ContentKnowledge> = {}): ContentKnowledge {
   return {
     id: 'ck-1',
-    category: 'hook_template',
+    categories: ['hook_template'],
     title: 'Test Hook Type',
     content: 'Principle: test. Templates: "Test template _____"',
     source: 'Test Source.pdf',
@@ -27,12 +27,18 @@ describe('buildContentSuggestionPrompt', () => {
 
   it('includes multiple knowledge entries, each with its own category', () => {
     const entries = [
-      buildKnowledge({ title: 'Hook A', category: 'hook_template' }),
-      buildKnowledge({ id: 'ck-2', title: 'Rule B', category: 'headline_rule' }),
+      buildKnowledge({ title: 'Hook A', categories: ['hook_template'] }),
+      buildKnowledge({ id: 'ck-2', title: 'Rule B', categories: ['headline_rule'] }),
     ];
     const { messages } = buildContentSuggestionPrompt('topic', entries);
     expect(messages[0].content).toContain('[Hook A] (hook_template)');
     expect(messages[0].content).toContain('[Rule B] (headline_rule)');
+  });
+
+  it('renders an entry tagged with multiple categories joined together', () => {
+    const entries = [buildKnowledge({ title: 'Dual Tag', categories: ['hook_template', 'headline_rule'] })];
+    const { messages } = buildContentSuggestionPrompt('topic', entries);
+    expect(messages[0].content).toContain('[Dual Tag] (hook_template, headline_rule)');
   });
 
   it('instructs the model to use only given techniques and output the exact required JSON shape', () => {

@@ -62,7 +62,16 @@ export async function generateContentSuggestions(
 
   const categories = category ? [category] : DEFAULT_CATEGORIES;
   const knowledgeGroups = await Promise.all(categories.map((c) => contentKnowledgeRepository.findActive(c)));
-  const knowledge = knowledgeGroups.flat();
+  // Task 9.7 — categories стала String[] (D-0033): запись с несколькими
+  // тегами может теперь реально попасть в несколько групп сразу (например,
+  // запись с тегами hook_template+headline_rule при DEFAULT_CATEGORIES) —
+  // де-дублируем по id, иначе модель увидела бы её дважды в промпте.
+  const seenIds = new Set<string>();
+  const knowledge = knowledgeGroups.flat().filter((entry) => {
+    if (seenIds.has(entry.id)) return false;
+    seenIds.add(entry.id);
+    return true;
+  });
 
   if (knowledge.length === 0) {
     return { status: 'no_knowledge_available' };

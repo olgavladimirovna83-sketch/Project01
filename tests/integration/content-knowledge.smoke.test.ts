@@ -27,7 +27,7 @@ describe('contentKnowledgeRepository', () => {
   it('creates a record and reads it back by id', async () => {
     const source = testSource();
     const created = await contentKnowledgeRepository.create({
-      category: 'hook_template',
+      categories: ['hook_template'],
       title: 'Test hook',
       content: 'Test content',
       source,
@@ -36,19 +36,19 @@ describe('contentKnowledgeRepository', () => {
     createdIds.push(created.id);
 
     const found = await contentKnowledgeRepository.findById(created.id);
-    expect(found).toMatchObject({ category: 'hook_template', title: 'Test hook', status: 'active' });
+    expect(found).toMatchObject({ categories: ['hook_template'], title: 'Test hook', status: 'active' });
   });
 
   it('findActive returns only status: active records, excluding archived ones', async () => {
     const source = testSource();
     const active = await contentKnowledgeRepository.create({
-      category: 'headline_rule',
+      categories: ['headline_rule'],
       title: 'Active rule',
       content: 'x',
       source,
     });
     const archived = await contentKnowledgeRepository.create({
-      category: 'headline_rule',
+      categories: ['headline_rule'],
       title: 'Archived rule',
       content: 'x',
       source,
@@ -65,13 +65,13 @@ describe('contentKnowledgeRepository', () => {
   it('findActive(category) filters to only the requested category', async () => {
     const source = testSource();
     const hookRow = await contentKnowledgeRepository.create({
-      category: 'hook_template',
+      categories: ['hook_template'],
       title: 'Hook for filter test',
       content: 'x',
       source,
     });
     const scheduleRow = await contentKnowledgeRepository.create({
-      category: 'posting_schedule',
+      categories: ['posting_schedule'],
       title: 'Schedule for filter test',
       content: 'x',
       source,
@@ -84,10 +84,26 @@ describe('contentKnowledgeRepository', () => {
     expect(ids).not.toContain(scheduleRow.id);
   });
 
+  it('findActive(category) matches a record tagged with multiple categories (D-0033)', async () => {
+    const source = testSource();
+    const dualTagged = await contentKnowledgeRepository.create({
+      categories: ['hook_template', 'headline_rule'],
+      title: 'Dual-tagged for filter test',
+      content: 'x',
+      source,
+    });
+    createdIds.push(dualTagged.id);
+
+    const byFirstTag = await contentKnowledgeRepository.findActive('hook_template');
+    const bySecondTag = await contentKnowledgeRepository.findActive('headline_rule');
+    expect(byFirstTag.map((r) => r.id)).toContain(dualTagged.id);
+    expect(bySecondTag.map((r) => r.id)).toContain(dualTagged.id);
+  });
+
   it('findBySourceAndTitle supports idempotent seeding — finds an existing row by source+title', async () => {
     const source = testSource();
     const row = await contentKnowledgeRepository.create({
-      category: 'content_strategy',
+      categories: ['content_strategy'],
       title: 'Idempotency check',
       content: 'x',
       source,

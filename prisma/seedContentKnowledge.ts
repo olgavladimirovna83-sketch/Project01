@@ -3,6 +3,14 @@
  * Идемпотентно: проверяет source+title перед вставкой, безопасно
  * перезапускать при добавлении новых записей в `contentKnowledgeSeedData.ts`.
  *
+ * Task 9.7 — при существующей (source, title) записи дополнительно
+ * сверяет `categories` с данными в `contentKnowledgeSeedData.ts` и
+ * обновляет их при расхождении (title/content/source/sourceSection не
+ * трогаются — они и есть ключ идемпотентности). Без этого правка тегов
+ * существующей записи в коде молча не применялась бы при повторном
+ * запуске — ровно тот сценарий, который встретился при пересмотре
+ * записей на дополнительные теги (D-0033).
+ *
  * Запуск: `npm run seed:content-knowledge`.
  */
 
@@ -11,8 +19,13 @@ import { entries } from './contentKnowledgeSeedData';
 
 const prisma = new PrismaClient();
 
+function sameCategories(a: string[], b: string[]): boolean {
+  return a.length === b.length && a.every((value) => b.includes(value));
+}
+
 async function main() {
   let created = 0;
+  let categoriesUpdated = 0;
   let skipped = 0;
 
   for (const entry of entries) {
@@ -20,7 +33,15 @@ async function main() {
       where: { source: entry.source, title: entry.title },
     });
     if (existing) {
-      skipped += 1;
+      if (!sameCategories(existing.categories, entry.categories)) {
+        await prisma.contentKnowledge.update({
+          where: { id: existing.id },
+          data: { categories: entry.categories },
+        });
+        categoriesUpdated += 1;
+      } else {
+        skipped += 1;
+      }
       continue;
     }
     await prisma.contentKnowledge.create({ data: entry });
@@ -28,7 +49,9 @@ async function main() {
   }
 
   // eslint-disable-next-line no-console
-  console.log(`ContentKnowledge seed: создано ${created}, пропущено (уже существовали) ${skipped}.`);
+  console.log(
+    `ContentKnowledge seed: создано ${created}, обновлены теги ${categoriesUpdated}, без изменений ${skipped}.`,
+  );
 }
 
 main()

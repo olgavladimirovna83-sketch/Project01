@@ -32,7 +32,7 @@ export function buildContentSuggestionPrompt(
   knowledge: ContentKnowledge[],
 ): { systemPrompt: string; messages: AIMessage[] } {
   const knowledgeLines = knowledge
-    .map((entry) => `- [${entry.title}] (${entry.category}) ${entry.content}`)
+    .map((entry) => `- [${entry.title}] (${entry.categories.join(', ')}) ${entry.content}`)
     .join('\n\n');
 
   const userMessage = [`Topic: ${topic}`, `Available techniques:\n${knowledgeLines}`].join('\n\n');

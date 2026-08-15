@@ -364,10 +364,13 @@ model Memory {
 // см. DECISIONS.md D-0030.
 model ContentKnowledge {
   id            String   @id @default(cuid())
-  // Открытая категория (String, не enum) — тот же принцип, что
-  // goalType/contentType/patternType/reasonType: список категорий будет
-  // расти по мере пополнения базы, не зафиксирован заранее.
-  category      String
+  // Список тегов (String[], не одна String) — Task 9.7/D-0033: запись
+  // может честно принадлежать нескольким темам одновременно (пример:
+  // воскресный хук с крупной типографикой — одновременно hook_template
+  // и headline_rule), без дублирования текста под каждый тег отдельно.
+  // Список значений внутри тегов по-прежнему открытый (не enum), тот же
+  // принцип, что goalType/contentType/patternType/reasonType.
+  categories    String[]
   title         String
   content       String
   source        String
@@ -376,7 +379,9 @@ model ContentKnowledge {
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
-  @@index([category])
+  // Без индекса — таблица-справочник, десятки-сотни строк, полнотабличный
+  // скан на "категория содержит X" быстрее любого выигрыша от GIN-индекса
+  // на таком объёме; не строить инфраструктуру под гипотетический рост.
   @@map("content_knowledge")
 }
 

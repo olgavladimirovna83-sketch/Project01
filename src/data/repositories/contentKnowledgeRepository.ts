@@ -12,9 +12,13 @@ export const contentKnowledgeRepository = {
   // захардкоженного текста: только status: 'active', опционально по
   // category. Список пока растёт вручную (см. prisma/seedContentKnowledge.ts) —
   // сортировка по createdAt для предсказуемого порядка.
+  // Task 9.7 — category стала categories (String[], D-0033): фильтр по
+  // одной категории теперь ищет её среди тегов записи (has), не точное
+  // совпадение единственного значения — запись с несколькими тегами
+  // находится по любому из них.
   findActive(category?: string): Promise<ContentKnowledge[]> {
     return prisma.contentKnowledge.findMany({
-      where: { status: 'active', ...(category ? { category } : {}) },
+      where: { status: 'active', ...(category ? { categories: { has: category } } : {}) },
       orderBy: { createdAt: 'asc' },
     });
   },
