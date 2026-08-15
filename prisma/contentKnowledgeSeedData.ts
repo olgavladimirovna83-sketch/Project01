@@ -73,7 +73,32 @@
  * (Шаг 6) — краткая ссылка на уже подробно загруженный приём; первая из
  * двух каруселных таксономий (Personal/Valuable/Signature, стр. 64–67)
  * пересекается с более точным квадрантом (стр. 78–79) — оставлен только
- * квадрант. Стр. 83–130 (48 страниц) СОЗНАТЕЛЬНО не загружены этим шагом
+ * квадрант.
+ *
+ * Стр. 83–102 (Task 9.11) добавили: Reverse Trend (переворот смысла
+ * тренда), FaceTime Effect vs Community Repellent, 3 новых хука
+ * (Community Driven/Confessional/Inclusive Signature), горизонтальные
+ * видео, эскапистский контент, статичное фото с музыкой, анатомия
+ * закадрового голоса, хуки для КОНЦА видео (cliffhanger/takeaway/CTA —
+ * новая территория, не открывающие хуки), адаптация структуры тренда под
+ * нишу (trend follower → trend setter), диагностика застоя роста,
+ * цикл негативной обратной связи инфлюенс-индустрии, недельный ритм
+ * производства контента, разделение зон контроля творец/делегируемое.
+ * ЧЕСТНО ИСКЛЮЧЕНО на стр. 83–102 — нишевые банки идей (Reverse Trend
+ * Ideas, Community Driven Signature Series, Content Pillar Ideas по
+ * нишам, Done-for-you Content Ideas) И дубликаты уже загруженного:
+ * Repetitive/Episodic Signature Hooks повторены в "Signature Hook
+ * Variations" (уже загружены, Task 9.10); Anti-AI-часть тренда Escapism
+ * дублирует уже загруженное анти-ИИ позиционирование; "Carousels as
+ * Micro Vlogs" дублирует уже загруженную сторителлинг-карусель; "Slow
+ * Content" пересекается с уже загруженным трендом усталости от монтажа;
+ * реформулировка скучных заголовков в креативные (Shop With Me →
+ * Domestic Core Shoppers Guide и т.п., встречается в источнике минимум
+ * трижды) дублирует уже загруженную "Реаранжировку рутины под серию";
+ * Reverse Psychology/Visual/Engagement хуки на стр. 96–98 буквально
+ * повторяют уже загруженные записи; Content Anchor+Supporting Pillars,
+ * форматы Daily Dispatch/Growth Playbook и Truth Bomb Hooks — тоже
+ * повторы. Стр. 103–130 (28 страниц) СОЗНАТЕЛЬНО не загружены этим шагом
  * — материал для следующих узких шагов.
  *
  * Из "Полное руководство дополнительно.pdf" — загружено всё, КРОМЕ
@@ -848,5 +873,145 @@ export const entries: SeedEntry[] = [
     ].join('\n'),
     source: GUIDE,
     sourceSection: 'стр. 77-78, классификация контента по целям',
+  },
+
+  // --- из "Полное руководство.pdf": Раздел 3, стр. 83–102 (Task 9.11) ---
+  {
+    categories: ['content_strategy'],
+    title: 'Reverse Trend — переворот смысла популярного тренда',
+    content:
+      'Принцип: взять популярный вирусный тренд и перевернуть его смысловой или визуальный контекст на 180 градусов, вместо прямого копирования оригинала — создаёт ощущение оригинальности при использовании уже знакомого аудитории формата.',
+    source: GUIDE,
+    sourceSection: 'стр. 82-83, Reverse Trend',
+  },
+  {
+    categories: ['content_strategy'],
+    title: 'Эффект FaceTime против «репеллента» для сообщества',
+    content:
+      'Community Repellent (отталкивает аудиторию) — постоянный агрессивно-продающий контент или полная переадресация общения на автоответчики в директ. The FaceTime Effect (притягивает) — даже обучающий контент подаётся так, будто автор созванивается по FaceTime с близким другом; аудитория ищет «тёплого» автора, в которого приятно эмоционально инвестировать время.',
+    source: GUIDE,
+    sourceSection: 'стр. 84, FaceTime Effect vs Community Repellent',
+  },
+  {
+    categories: ['hook_template'],
+    title: 'Community Driven Hook (хук предполагаемой близости)',
+    content: [
+      'Принцип: заставляет зрителя чувствовать, что он уже часть разговора с автором, даже видя его впервые — через фрейминг мнимой обиды за недосказанность.',
+      'Шаблоны: "You told me we were close, how could you not tell me about ___", "I thought we told each other everything", "No one here wanted to warn me about this?", "Oh I see, so you just weren\'t going to tell me about ___", "Oh so we\'re gatekeeping things from each other now?!", "Me and you are supposed to be friends".',
+    ].join('\n'),
+    source: GUIDE,
+    sourceSection: 'стр. 85, Community Driven Hooks',
+  },
+  {
+    categories: ['hook_template'],
+    title: 'Confessional Hook (разрушение четвёртой стены)',
+    content: [
+      'Принцип: разрушает «четвёртую стену» между экраном и зрителем, создавая личный, интимный контакт через доверительную интонацию.',
+      'Шаблоны: "I would suggest not scrolling past this one", "Put the phone down and get comfortable — this is a story time you will not want to skip", "I would recommend bracing yourself for what I\'m about to say…", "If this feels targeted… It is", "Stay with me on this one".',
+    ].join('\n'),
+    source: GUIDE,
+    sourceSection: 'стр. 85-86, Confessional Hooks',
+  },
+  {
+    categories: ['hook_template'],
+    title: 'Inclusive Signature Hook (объединяющий «мы»-фрейминг)',
+    content: [
+      'Принцип: объединяющая формулировка от первого лица множественного числа, создающая ощущение общей "эры"/периода вместе с аудиторией.',
+      'Шаблоны: "We\'ve officially entered our trial & error era", "We\'re healing in public so welcome back to day X of getting outside of our comfort zone", "Let\'s day rot together, but in a healthy way", "Let\'s make this make sense", "Our team meeting", "Let\'s play dress up together".',
+    ].join('\n'),
+    source: GUIDE,
+    sourceSection: 'стр. 86, Inclusive Signature Hooks',
+  },
+  {
+    categories: ['platform_strategy'],
+    title: 'Горизонтальные видео в Instagram как растущий формат',
+    content:
+      'Горизонтальный видеоконтент (в стиле мини-YouTube) показывает аналитический рост в Instagram — работает как кинематографичный «трейлер к жизни», не как вертикальный reel.',
+    source: GUIDE,
+    sourceSection: 'стр. 87, Horizontal Videos',
+  },
+  {
+    categories: ['content_strategy'],
+    title: 'Эскапистский контент как ответ на цифровое перенасыщение',
+    content:
+      'Растущий запрос аудитории на «ментальный побег» (mental getaway), тепло и настоящие человеческие связи — контент про загородную жизнь, природу, уют, садоводство как противовес цифровому перенасыщению.',
+    source: GUIDE,
+    sourceSection: 'стр. 87, Escapism Content',
+  },
+  {
+    categories: ['content_format_template'],
+    title: 'Статичное фото с музыкальной дорожкой',
+    content:
+      'Одиночная статичная фотография с прикреплённой аудиодорожкой (без видео/движения) — формат, возвращающийся в рекомендации алгоритма ленты. Рекомендация: тестировать формат примерно раз в неделю.',
+    source: GUIDE,
+    sourceSection: 'стр. 88, Static Image with Music',
+  },
+  {
+    categories: ['hook_template'],
+    title: 'Анатомия закадрового голоса — 5 правил',
+    content: [
+      '1) Усиливать заголовок вербальным хуком сразу в начале — заголовок и голос работают вместе, не по отдельности.',
+      '2) Делать историю "нашей", не "своей" — добавлять пользу на протяжении видео, использовать relatable-сторителлинг.',
+      '3) Говорить максимально разговорно, будто созваниваешься по FaceTime с другом.',
+      '4) Цеплять аудиторию не только в начале, но и в конце видео.',
+      '5) Улыбаться во время записи — даже без видео улыбка делает голос более дружелюбным и способна остановить пролистывание.',
+    ].join('\n'),
+    source: GUIDE,
+    sourceSection: 'стр. 88-90, Voiceover Best Practices',
+  },
+  {
+    categories: ['hook_template'],
+    title: 'Хуки для конца видео: cliffhanger / вывод / призыв к действию',
+    content: [
+      'Три пути зацепить аудиторию в конце видео, не только в начале:',
+      'Cliffhanger enders (оставить интригу): "You won\'t believeee what happened next- but you\'ll have to lmk in the comments if you want a part two!!", "But that\'s when everything changed - and I\'ll explain THAT in the next one."',
+      'Takeaway enders (дать сильный вывод): "This took me years to figure out so let this be your reminder to ___", "If you leave knowing anything, let it be ___".',
+      'CTA enders (призыв к действию): "Okok your turn — what would you do in this situation?", "Let me know if you can relate", "Most people won\'t do this — will you?".',
+    ].join('\n'),
+    source: GUIDE,
+    sourceSection: 'стр. 89-90, Engagement Hook at the End',
+  },
+  {
+    categories: ['content_strategy'],
+    title: 'От trend follower к trend setter — адаптация структуры тренда под нишу',
+    content:
+      'Принцип: вместо копирования оригинального тренда 1-в-1, адаптировать его СТРУКТУРУ под собственную нишу, сохраняя узнаваемый формат, но наполняя релевантным для своей аудитории содержанием. Пример: тренд "world star / world stop" — мамы показывают перегруженность делами → "world stop" → переход на расхламление/уход за собой; фитнес-блогеры показывают, что их день "по-настоящему начинается" только после тренировки.',
+    source: GUIDE,
+    sourceSection: 'стр. 90-91, Low Effort Content Ideas — адаптация трендов',
+  },
+  {
+    categories: ['content_strategy'],
+    title: 'Диагностика застоя роста: слишком узкая ниша или хаотичный контент',
+    content:
+      'Если контент публикуется регулярно 6+ месяцев без роста, причина обычно одна из двух: (1) ниша слишком узкая (too niched down), либо (2) контент хаотичный, без единой структуры (all over the place). Решение — вернуться к основам: выбрать 4-5 ключевых контент-столпов и использовать проверенные форматы и хуки, а не изобретать заново.',
+    source: GUIDE,
+    sourceSection: 'стр. 93, The Brutally Honest Truth About Your Growth',
+  },
+  {
+    categories: ['content_strategy'],
+    title: 'Цикл негативной обратной связи инфлюенс-индустрии и возможность для новых авторов',
+    content: [
+      'Повторяющийся сценарий: инфлюенсер начинает казаться оторванным от реальности → у него всё ещё есть преданная фан-база → он всё ещё генерирует продажи → бренды продолжают его приглашать, несмотря на усталость аудитории от одних и тех же лиц и трендов.',
+      'Три варианта реакции для зрителя/новых авторов: (A) отписаться от раздражающих; (B) подписаться на новых микро-креаторов; (C) самому стать тем самым новым микро-инфлюенсером, которого не хватает на рынке.',
+      'Риск для существующих авторов: создание контента ради контента (фабрикация моментов вместо реальной жизни) постепенно разрушает связь с аудиторией — люди хотят настоящий опыт, не игру в жизнь.',
+    ].join('\n'),
+    source: GUIDE,
+    sourceSection: 'стр. 98-99, Coachella Analysis & Personal Brand Strategy',
+  },
+  {
+    categories: ['workflow_system'],
+    title: 'Недельный ритм производства контента (Content Batching Schedule)',
+    content:
+      '7-дневный цикл ПРОИЗВОДСТВА контента (не путать с расписанием публикаций — это про процесс создания): День 1 (Пн) — стратегия (столпы+форматы) и анализ результатов прошлой недели; День 2 (Вт) — пакетная съёмка 2-4 видео + съёмка низкоусильного контента (B-roll/тренды); День 3 (Ср) — таймер на 1 час и монтаж максимума видео; День 4 (Чт) — расписать публикации на неделю вперёд + написать подписи; День 5 (Пт) — снять обложки, подготовить 5-6 постов к выходу; День 6 (Сб) — брейнсторм и черновики контента на следующую неделю; День 7 (Вс) — финализировать монтаж (заголовки видео, субтитры).',
+    source: GUIDE,
+    sourceSection: 'стр. 99-100, How to Plan Like a Top Creator',
+  },
+  {
+    categories: ['workflow_system'],
+    title: 'Разделение зон контроля: творчество автора vs делегируемая рутина',
+    content:
+      'Под собственным контролем автора: креативность, рост, построение комьюнити, ежедневное присутствие в соцсетях. На аутсорс (делегировать): расчёт зарплат, налоги, оформление сотрудников, административная рутина. Принцип: перегрузка рутинными бизнес-задачами лишает пространства для творчества — то, что не является творческим ядром работы, стоит делегировать, а не тянуть самостоятельно.',
+    source: GUIDE,
+    sourceSection: 'стр. 101-102, Creator & CEO',
   },
 ];
