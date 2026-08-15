@@ -545,6 +545,14 @@
 **Готово, когда:** новые записи проходят ту же форму, что существующие; `npm run seed:content-knowledge` идемпотентен на втором прогоне; `npx tsc --noEmit`/`npm run lint`/`npm run build`/`npm test` проходят без регрессий.
 **Статус:** Завершено. Seed-скрипт (два прогона в рамках задачи, по мере добавления двух подшагов): «создано 11»→«создано 0» после первого подшага (стр. 103–122), «создано 7»→«создано 0» после второго (стр. 122–130). Финальная идемпотентность подтверждена. Итог: 101 запись, 10 категорий (`content_strategy` 30, `platform_strategy` 19, `hook_template` 17, `editing_style` 9, `headline_rule` 9, `workflow_system` 7, `content_format_template` 7, `posting_schedule` 3, `vlog_strategy` 1, `bio_strategy` 1). `npm test` — 214/214, без регрессий; `npx tsc --noEmit`/`npm run lint`/`npm run build` — без ошибок.
 
+**Phase 9 — AI Layer считается официально закрытой** на объёме Task 9.1–9.12 (решение Olga, 15 августа 2026). Критерий `42_IMPLEMENTATION_ROADMAP.md` §51 PHASE 9 COMPLETION («AI способен объяснить существующий structured recommendation, не подменяя собой data и analytics layers») выполнен и подтверждён живой браузерной проверкой ещё в Task 9.1–9.2 (`generateDecisionExplanation` читает уже персистентную `Recommendation`+`RecommendationReason`, ничего не решает и не пересчитывает сам, пишет только в `AiRun` — AI строго на объяснительном слое поверх Decision Engine, не вместо него). Всё, что было реализовано после (Task 9.3–9.12: `ContentKnowledge`, вторая AI-задача генерации текста, экраны для обеих AI-задач, теги-массив, 101 запись базы знаний из «Полное руководство.pdf») — ценная работа сверх формального критерия закрытия фазы, не входит в него как обязательное условие. Явно не покрыто этим объёмом (честно зафиксировано, не входило в §45–51): AI для content analysis (§31)/pattern interpretation (§32) — не начинались; отдельный Prompt Registry (§21) — два промпта пока управляются напрямую в коде каждой задачи, не через реестр; отдельный AI_CONTEXT builder модуль (§19) — контекст собирается ad hoc в каждой AI-функции; retrieval/ранжирование `ContentKnowledge` по релевантности теме — простой фильтр по `category`, не семантический поиск.
+
+---
+
+## Phase 10 — User Experience (`42_IMPLEMENTATION_ROADMAP.md` §52–57)
+
+Основной frontend flow: Onboarding → Connect → Sync → Dashboard → Insight → Recommendation → Decision. Первая задача не сформулирована — по обычному принципу проекта, один шаг формулируется, когда до него доходит очередь, после того как понятен порядок экранов относительно уже готового backend.
+
 ---
 
 ## Backlog
