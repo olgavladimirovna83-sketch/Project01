@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
+import Anthropic, { APIError } from '@anthropic-ai/sdk';
 import type { AIGenerateRequest, AIGenerateResult, AIProvider } from '../AIProvider';
 
 const DEFAULT_TEXT_MODEL = process.env.ANTHROPIC_TEXT_MODEL ?? 'claude-sonnet-5';
@@ -43,7 +43,23 @@ export function createAnthropicProvider(): AIProvider {
           },
           status: 'completed',
         };
-      } catch {
+      } catch (error) {
+        // Найдено вручную (Olga, 15 августа 2026): раньше эта ветка молча
+        // проглатывала реальную причину сбоя — `status: 'provider_unavailable'`
+        // выглядел одинаково что при отсутствующем ключе, что при реальном
+        // 400 от Anthropic ("credit balance too low"), что при rate limit.
+        // Логируем настоящую причину здесь же, до возврата общего статуса —
+        // независимая, полезная правка (observability), не завязана на
+        // конкретный ai_run/request, поэтому не в domain-коде выше.
+        const details =
+          error instanceof APIError
+            ? `status=${error.status ?? 'n/a'} type=${error.type ?? 'unknown'} message=${error.message}`
+            : error instanceof Error
+              ? error.message
+              : String(error);
+        // eslint-disable-next-line no-console
+        console.error(`[AIProvider:anthropic] generate() failed — ${details}`);
+
         return {
           text: '',
           provider: 'anthropic',
