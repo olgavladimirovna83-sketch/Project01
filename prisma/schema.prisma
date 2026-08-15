@@ -77,6 +77,17 @@ enum ExternalAccountStatus {
   disconnected
 }
 
+// Task 9.1 — закрытый набор исходов AI-запроса, определён самим контрактом
+// AIProvider (src/ai/AIProvider.ts, AIRunStatus) — не платформенная открытая
+// категория вроде goalType/contentType, поэтому enum, не String.
+enum AiRunStatus {
+  completed
+  failed
+  timeout
+  provider_unavailable
+  validation_failed
+}
+
 model User {
   id           String    @id @default(cuid())
   createdAt    DateTime  @default(now()) @map("created_at")
@@ -363,6 +374,7 @@ model Recommendation {
   goal      Goal                   @relation(fields: [goalId], references: [id], onDelete: Cascade)
   decisions UserDecision[]
   reasons   RecommendationReason[]
+  aiRuns    AiRun[]
 
   @@index([userId])
   @@index([goalId])
@@ -390,6 +402,34 @@ model RecommendationReason {
 
   @@index([recommendationId])
   @@map("recommendation_reasons")
+}
+
+// Task 9.1 — 29_AI_LAYER.md §24 AI RUN/§76 КРИТИЧЕСКОЕ ПРАВИЛО №4
+// (воспроизводимость: модель/версия/prompt/context/evidence/когда).
+// Append-only лог каждого AI-запроса — AI не пишет в Recommendation
+// напрямую (§67/§68), только в собственную лог-таблицу. `output` — Json?,
+// провалидированное структурированное объяснение (§50 DECISION EXPLANATION,
+// 21_DECISION_LOGIC.md) при успехе, либо `{ raw: text }` при
+// validation_failed (для отладки, не выдаётся как настоящее объяснение),
+// либо null при provider-level сбое. `status` — AiRunStatus, закрытый
+// набор, определённый контрактом AIProvider, не документом.
+model AiRun {
+  id               String      @id @default(cuid())
+  recommendationId String      @map("recommendation_id")
+  provider         String
+  model            String
+  promptVersion    String      @map("prompt_version")
+  status           AiRunStatus
+  output           Json?
+  inputTokens      Int?        @map("input_tokens")
+  outputTokens     Int?        @map("output_tokens")
+  latencyMs        Int?        @map("latency_ms")
+  createdAt        DateTime    @default(now()) @map("created_at")
+
+  recommendation Recommendation @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
+
+  @@index([recommendationId])
+  @@map("ai_runs")
 }
 
 model UserDecision {

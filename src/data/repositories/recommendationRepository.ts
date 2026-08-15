@@ -16,6 +16,12 @@ export const recommendationRepository = {
   findById(id: string): Promise<Recommendation | null> {
     return prisma.recommendation.findUnique({ where: { id } });
   },
+  // Task 9.1 — источник evidence для decisionExplanation.ts: reasons
+  // (§28) нужны, чтобы AI объяснял на основе реальных причин, не
+  // придумывал их заново.
+  findByIdWithReasons(id: string): Promise<RecommendationWithReasons | null> {
+    return prisma.recommendation.findUnique({ where: { id }, include: { reasons: true } });
+  },
   update(id: string, data: Prisma.RecommendationUpdateInput): Promise<Recommendation> {
     return prisma.recommendation.update({ where: { id }, data });
   },
