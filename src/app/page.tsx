@@ -12,6 +12,7 @@ export default async function HomePage() {
       {session?.user ? (
         <p>
           Вы вошли как {session.user.email}. <Link href="/goals">Цели</Link> ·{' '}
+          <Link href="/recommendations">Рекомендации</Link> ·{' '}
           <Link href="/integrations">Интеграции</Link>. <LogoutButton />
         </p>
       ) : (
