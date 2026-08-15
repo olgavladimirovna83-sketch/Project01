@@ -1,6 +1,7 @@
 export { accountSnapshotRepository } from './accountSnapshotRepository';
 export { aiRunRepository } from './aiRunRepository';
 export { contentFeatureRepository } from './contentFeatureRepository';
+export { contentKnowledgeRepository } from './contentKnowledgeRepository';
 export { contentRepository } from './contentRepository';
 export { experimentRepository } from './experimentRepository';
 export { externalAccountRepository } from './externalAccountRepository';

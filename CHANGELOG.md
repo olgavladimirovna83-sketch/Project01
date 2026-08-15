@@ -158,6 +158,12 @@
 - Task 9.2: `src/app/recommendations/[id]/explainStatusMessages.ts` — чистая `formatExplainStatusMessage`, честное сообщение под каждый нестандартный исход, в т.ч. `provider_unavailable` — почти гарантированный исход в этом окружении без `ANTHROPIC_API_KEY`
 - Task 9.2: `tests/unit/explain-status-messages.test.ts` (3) + `tests/e2e/recommendation-explanation.spec.ts` (4, реальный браузер+БД)
 - Task 9.2: `.claude/launch.json` — dev-сервер конфигурация для браузерной проверки UI (впервые появилась в этой задаче)
+- Task 9.3: `prisma/schema.prisma` — новая модель `ContentKnowledge` (внешняя база приёмов создания контента, НЕ привязана к `userId`, `category` — открытая строка); миграция `20260815105642_content_knowledge`
+- Task 9.3: `src/data/repositories/contentKnowledgeRepository.ts` — `create`/`findById`/`findActive(category?)`/`findBySourceAndTitle`
+- Task 9.3: `prisma/contentKnowledgeSeedData.ts` (чистые данные, 15 записей) + `prisma/seedContentKnowledge.ts` (идемпотентный раннер, `npm run seed:content-knowledge`) — первые записи из "Полное руководство.pdf" (Раздел 1, недельная система хуков) и "Полное руководство дополнительно.pdf" (фундамент стратегии + все 7 правил заголовков)
+- Task 9.3: `tsx` добавлен как dev-зависимость (запуск standalone TS-скриптов, `npm run seed:content-knowledge`)
+- Task 9.3: `tests/unit/content-knowledge-seed-data.test.ts` (6, без БД) + `tests/integration/content-knowledge.smoke.test.ts` (4, реальная БД, синтетические данные)
+- D-0030: `ContentKnowledge` не привязана к пользователю (внешнее ремесленное знание, не персональная аналитика); имя выбрано шире "WritingGuideline" (материалы не только про текст); сознательно частичная загрузка 130-страничного документа (только Раздел 1), честно зафиксирована; сам AI-код чтения при генерации — не реализован этим шагом (§73, тот же принцип, что D-0028) — YELLOW-решение с обоснованием
 
 ### Fixed
 - `INSTAGRAM_API_REVIEW.md` §3: исправлен вывод о permissions после того, как Olga лично прошла реальную авторизацию Instagram — insights оказался отдельным разрешением от `instagram_business_basic`, не его частью, как предполагала исходная версия резюме. Подтверждённый набор: `instagram_business_basic` + insights, comments/messages/content-publish осознанно отключены
@@ -171,6 +177,7 @@
 - `DECISIONS.md`: счётчик «46 документов» (3 места) исправлен на 45 — `First.md` изначально существовал только в Project Knowledge, не в репозитории `/docs`, и был удалён до начала работы над проектом, никогда не входил в реальный docs-аудит. Найдено при внешнем архитектурном review
 - `DECISIONS.md` D-0022/`TASKS.md`/`CURRENT_STATUS.md`/`src/knowledge/analyticsMemory.ts`: ссылка «§37 MEMORY_EVIDENCE» в нескольких местах упоминалась без имени документа рядом с упоминаниями `42_IMPLEMENTATION_ROADMAP.md` §35/§37 — в `analyticsMemory.ts` дошло до того, что «§37» в одном комментарии означало два разных раздела двух разных документов (`25_DATABASE_SCHEMA.md` §37 MEMORY_EVIDENCE vs `42_IMPLEMENTATION_ROADMAP.md` §37 HISTORICAL DATA). Найдено Olga при независимой перепроверке цитаты — сама ссылка была верна по содержанию, добавлены явные имена документов везде, где было неоднозначно
 - `src/knowledge/patternDetection.ts`: `lastConfirmedAt` изначально не устанавливался при первом создании `Pattern` (только при повторном `update`) — интеграционный тест (Task 7.2) поймал `null` там, где ожидалась дата. Исправлено — первое обнаружение тоже подтверждение, не только повторные
+- **«API access blocked.» на Instagram Graph API — разрешилось само, на стороне Meta.** Обнаружено случайно при полном `npm test` в ходе Task 9.3 (не связано с самой задачей): `instagram-live.smoke.test.ts` (Task 3.2) и `instagram-sync-live.smoke.test.ts` (Task 4.1/4.3) оба прошли реально, с настоящими данными аккаунта Olga (25 публикаций, 175 метрик — точно как в последнем успешном прогоне на момент Task 4.3), впервые за четырнадцать заранее задокументированных подряд неудачных прогонов (Task 5.1–9.2, см. `CURRENT_STATUS.md`, «Заблокировано»). Код в области Instagram-интеграции не менялся ни в Task 9.1, ни в Task 9.2, ни в Task 9.3 — блокировка была исключительно внешней (Meta App/access), не связана с кодом проекта, что и предполагалось изначально
 
 ### Changed
 - Task 2.2: `src/app/page.tsx` — стал async server component, показывает logged-in/logged-out состояние через `auth()`
@@ -217,6 +224,8 @@
 - Task 8.4: `src/decision/README.md` — добавлен раздел про freshness/repetition
 - Task 9.1: `src/data/repositories/recommendationRepository.ts` — `findByIdWithReasons` (новый метод); `src/data/repositories/aiRunRepository.ts` — новый репозиторий, добавлен в `index.ts`
 - Task 9.1: `src/ai/README.md` — добавлен раздел про `decisionExplanation.ts`
+- Task 9.3: `package.json` — новый скрипт `seed:content-knowledge`, `tsx` в devDependencies
+- Task 9.3: `src/data/repositories/index.ts` — добавлен экспорт `contentKnowledgeRepository`
 - **Phase 6 — Analytics Foundation закрыта** (решение Olga, 13 августа 2026) на объёме Task 6.1–6.2 — критерий §34 выполнен; per-metric «anomaly» из §33 сознательно не реализован, зафиксирован как задача Phase 7 (Pattern Detection, `26_DATA_PIPELINE.md` §29–31), не Analytics Foundation, см. `TASKS.md`
 - **Phase 2 — Authentication закрыта** (решение Olga, 12 августа 2026) на объёме Task 2.1–2.3 — критерий `42_IMPLEMENTATION_ROADMAP.md` §11 подтверждён тестами; account recovery/password reset и role model сознательно вне MVP-scope, см. `TASKS.md`
 - D-0001 пересмотрено: исходное решение принято без систематической проверки, переделано по 10-пунктному чек-листу с построчным чтением всех 45 документов (запись поправлена 13 августа 2026 вместе с DECISIONS.md — счётчик «46» был пропущен здесь при первом исправлении)

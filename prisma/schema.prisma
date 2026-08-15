@@ -352,6 +352,33 @@ model Memory {
   @@map("memory")
 }
 
+// Task 9.3 — внешняя (не производная от пользовательских данных) база
+// приёмов создания контента — заголовки/хуки/монтаж/стратегия платформ и
+// т.д., загруженная из справочных материалов (Полное руководство.pdf +
+// доп. файл). Сознательно НЕ привязана к userId — в отличие от Memory/
+// Pattern (накопленное знание О пользователе), это внешнее ремесленное
+// знание, одинаково применимое к любому пользователю приложения. AI при
+// генерации текста читает эти записи из базы, не из захардкоженного
+// текста в промпте/коде — прямое требование Olga, YELLOW-решение,
+// см. DECISIONS.md D-0030.
+model ContentKnowledge {
+  id            String   @id @default(cuid())
+  // Открытая категория (String, не enum) — тот же принцип, что
+  // goalType/contentType/patternType/reasonType: список категорий будет
+  // расти по мере пополнения базы, не зафиксирован заранее.
+  category      String
+  title         String
+  content       String
+  source        String
+  sourceSection String?  @map("source_section")
+  status        String   @default("active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@index([category])
+  @@map("content_knowledge")
+}
+
 model Recommendation {
   id               String               @id @default(cuid())
   userId           String               @map("user_id")
