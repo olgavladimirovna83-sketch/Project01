@@ -48,8 +48,13 @@ import { getDecisionCandidates } from './recommendationCandidates';
  * (D-0024/D-0025 — придуманный вес запрещён §40 NO FALSE PRECISION).
  * `reasonType` — из словаря, который перечисляет сам документ (pattern/
  * performance/baseline/goal/experiment/freshness/opportunity), используются
- * только 'goal'/'baseline'/'pattern' — остальные категории не относятся ни
- * к одному реализованному фактору.
+ * 'goal'/'baseline'/'pattern' и, с Task 8.4, 'freshness' (реальный пункт
+ * словаря, реальные данные — `CandidateResult.freshness`). `repetitionNote`
+ * (Task 8.4, §13–14) НЕ становится отдельной причиной — "repetition"
+ * отсутствует в словаре reasonType, который перечисляет сам документ, а
+ * изобретать новую категорию вместо буквального следования документу здесь
+ * не оправдано; `repetitionNote` остаётся сигналом внутри `candidateScorer`
+ * (виден в `context.ranking`), не формальной RECOMMENDATION_REASON.
  *
  * Append-only, не upsert: каждый вызов создаёт НОВУЮ строку Recommendation
  * — рекомендация это событие в конкретный момент решения (на неё потом
@@ -108,6 +113,16 @@ export async function createRecommendation(userId: string): Promise<CreateRecomm
       reasonType: 'pattern',
       description: `Confirmed pattern for "${primaryMetric}" (${primaryRanking.pattern.direction}) agrees with candidate "${top.candidate}"`,
       confidence: primaryRanking.pattern.confidence ?? null,
+    });
+  }
+
+  if (top.freshness !== null) {
+    reasons.push({
+      reasonType: 'freshness',
+      description: `Evidence behind candidate "${top.candidate}" is ${top.freshness} (§12 FRESHNESS_WEIGHT)`,
+      // Категориальный бакет по возрасту данных, не вероятностная оценка —
+      // тот же принцип, что 'goal' выше.
+      confidence: null,
     });
   }
 

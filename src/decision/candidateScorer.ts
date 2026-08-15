@@ -36,10 +36,11 @@ import {
  * НЕ реализовано здесь (нет расчёта в этом модуле): goal fit — реализован
  * отдельно, как слой ВЫБОРА поверх уже посчитанных per-metric рейтингов
  * (`goalFit.ts`, Task 8.2, D-0025), не как фактор внутри самого scorer'а;
- * freshness (нет decay-логики), repetition (Task 8.3 начала заполнять
- * `Recommendation`, но сам scorer по-прежнему не читает историю
- * рекомендаций — задел на будущее, не реализовано сейчас), risk,
- * opportunity.
+ * risk, opportunity (нет понятия "experimental candidate"/hypothesis
+ * status в текущей реализации — задел на будущее, `DECISIONS.md` D-0027).
+ *
+ * Task 8.4 добавляет freshness и repetition (обоснование ниже, у обоих
+ * своя секция).
  *
  * Ranking — раздельно ПО КАЖДОЙ метрике (reach/likes/saved), не единый
  * список кандидатов across all metrics. Без goal fit (единственного
@@ -56,7 +57,33 @@ import {
  * только текстом внутри `label`) — нужны `recommendationPersistence.ts`,
  * чтобы завести отдельную RECOMMENDATION_REASON('pattern'), не парся
  * качественный текст.
+ *
+ * Task 8.4 — FRESHNESS_WEIGHT (`21_DECISION_LOGIC.md` §12): "свежие данные
+ * важнее старых" — буквальные пороги документа (0–3 месяца высокий вес,
+ * 3–6 средний, 6+ сниженный) применены не к самому расчёту baseline
+ * (Task 6.2/D-0019 сознательно НЕ трогается — decay-weighting всей
+ * истории остаётся отдельной будущей задачей, см. D-0027), а к тому,
+ * насколько свежи данные, СТОЯЩИЕ ЗА конкретным кандидатом — качественная
+ * метка (`freshness`), не переоценка среднего числа. §40 NO FALSE
+ * PRECISION тот же принцип, что везде: не число, не скрытый вес.
+ *
+ * REPETITION_CONTROL/RECENCY_OVERRIDE (§13–14) реализованы как ОДИН
+ * механизм — оба раздела документа буквально описывают одно и то же
+ * поведение на одном и том же примере (пользователь вчера опубликовал
+ * carousel — стоит ли снова ставить carousel первым?). Правило дословно
+ * по §14: "если пользователь только что использовал формат, система
+ * должна проверить, существует ли сейчас более эффективная альтернатива.
+ * Если альтернативы нет, тот же формат снова может стать рекомендацией" —
+ * это ПРОВЕРКА/пометка, не вычитание веса: топ-кандидат остаётся
+ * топ-кандидатом, если нет конкурентной альтернативы; если альтернатива
+ * есть — это становится `repetitionNote`, информация для человека
+ * (или следующего шага персистентности), не изменение порядка ranking.
  */
+
+/** §12 FRESHNESS_WEIGHT — буквальные пороги документа. `null` — у
+ * кандидата вообще нет данных по этой метрике (не отличать от 'stale':
+ * "нет данных" ≠ "данные есть, но старые"). */
+export type FreshnessLabel = 'recent' | 'aging' | 'stale' | null;
 
 export interface CandidateResult {
   candidate: string;
@@ -71,6 +98,19 @@ export interface CandidateResult {
    * могла создать отдельную RECOMMENDATION_REASON('pattern'), не
    * распарсивая качественный текст `label`. */
   matchesPattern: boolean;
+  /** Task 8.4, §12 FRESHNESS_WEIGHT — насколько свежи данные, стоящие за
+   * этим кандидатом (по самой недавней публикации, вносящей значение в
+   * `sampleSize`). */
+  freshness: FreshnessLabel;
+  /** Task 8.4, §13–14 RECENCY_OVERRIDE/REPETITION_CONTROL — заполняется
+   * только на топ-кандидате ranking'а, и только когда он совпадает с
+   * форматом, опубликованным последним по времени (по ВСЕМ форматам, не
+   * по этой метрике), И существует конкурентная альтернатива (следующий
+   * по рангу кандидат не хуже 'at_baseline'). `null` во всех остальных
+   * случаях — §14 явно требует НЕ подавлять повтор при отсутствии
+   * альтернативы, поэтому "нет пометки" — обычное, ожидаемое состояние,
+   * не пробел. */
+  repetitionNote: string | null;
 }
 
 export interface MetricRanking {
@@ -93,6 +133,33 @@ const COMPARISON_RANK: Record<BaselineComparison, number> = {
 };
 
 const CONFIDENCE_RANK: Record<Confidence, number> = { high: 0, medium: 1, low: 2 };
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+// §12 FRESHNESS_WEIGHT: 0–3 месяца / 3–6 месяцев / 6+ месяцев. "Месяц" не
+// определён доком численно — 30 дней, то же грубое приближение, что уже
+// использовал anomalyDetection.ts (Task 5.2) для похожих интервалов.
+const FRESHNESS_RECENT_MAX_MS = 90 * MS_PER_DAY;
+const FRESHNESS_AGING_MAX_MS = 180 * MS_PER_DAY;
+
+function computeFreshness(mostRecentPublishedAt: Date | null, now: Date): FreshnessLabel {
+  if (mostRecentPublishedAt === null) {
+    return null;
+  }
+  const ageMs = now.getTime() - mostRecentPublishedAt.getTime();
+  if (ageMs <= FRESHNESS_RECENT_MAX_MS) return 'recent';
+  if (ageMs <= FRESHNESS_AGING_MAX_MS) return 'aging';
+  return 'stale';
+}
+
+// §14 REPETITION_CONTROL — "существует ли более эффективная альтернатива"
+// прочитано как: следующий по рангу кандидат сравнивается не хуже
+// 'at_baseline' (не 'below'/'insufficient_data') — конкурентная
+// альтернатива, а не просто "что угодно на втором месте".
+function competitiveAlternative(runnerUp: CandidateResult | undefined): string | null {
+  if (!runnerUp) return null;
+  const isCompetitive = runnerUp.comparison === 'above' || runnerUp.comparison === 'at_baseline';
+  return isCompetitive ? runnerUp.candidate : null;
+}
 
 // Пометка о паттерне ставится, только если направление кандидата совпадает
 // с направлением уже подтверждённого паттерна — "at_baseline" не совпадает
@@ -119,6 +186,10 @@ export function scoreAndRankCandidates(
   candidates: string[],
   rows: Array<MetricRow & { contentType: string }>,
   patterns: Pattern[],
+  // Task 8.4 — §13–14, факт о публикационном поведении пользователя (не
+  // per-metric). `null`, если нет опубликованного контента вообще.
+  mostRecentContentType: string | null = null,
+  now: Date = new Date(),
 ): MetricRanking[] {
   return CORE_METRICS.map((metric) => {
     // Личная норма — глобальная, по ВСЕМ форматам разом (Task 6.2, D-0019,
@@ -129,10 +200,15 @@ export function scoreAndRankCandidates(
     const ranking = candidates
       .map((candidate) => {
         const candidateRows = rows.filter((row) => row.contentType === candidate);
-        const values = [...latestValuesByContent(candidateRows, metric).values()].map((v) => v.value);
+        const entries = [...latestValuesByContent(candidateRows, metric).values()];
+        const values = entries.map((e) => e.value);
         const candidateAverage = average(values);
         const { comparison, confidence } = compareToBaseline(candidateAverage, values.length, baseline);
         const matchesPattern = computeMatchesPattern(comparison, pattern);
+        const mostRecentPublishedAt =
+          entries.length === 0
+            ? null
+            : entries.reduce((max, e) => (e.publishedAt.getTime() > max.getTime() ? e.publishedAt : max), entries[0].publishedAt);
 
         return {
           candidate,
@@ -141,6 +217,8 @@ export function scoreAndRankCandidates(
           sampleSize: values.length,
           label: formatLabel(comparison, confidence, matchesPattern),
           matchesPattern,
+          freshness: computeFreshness(mostRecentPublishedAt, now),
+          repetitionNote: null as string | null,
         };
       })
       .sort(
@@ -148,6 +226,18 @@ export function scoreAndRankCandidates(
           COMPARISON_RANK[a.comparison] - COMPARISON_RANK[b.comparison] ||
           CONFIDENCE_RANK[a.confidence] - CONFIDENCE_RANK[b.confidence],
       );
+
+    // §13–14 — только топ-кандидат может нести repetitionNote, и только
+    // когда он и есть последний опубликованный формат (по всем форматам).
+    if (ranking.length > 0 && ranking[0].candidate === mostRecentContentType) {
+      const alternative = competitiveAlternative(ranking[1]);
+      if (alternative !== null) {
+        ranking[0] = {
+          ...ranking[0],
+          repetitionNote: `recently used — "${alternative}" is a competitive alternative that has not been used as recently`,
+        };
+      }
+    }
 
     return { metric, ranking, pattern };
   });

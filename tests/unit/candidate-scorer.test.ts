@@ -10,8 +10,9 @@ function row(
   contentType: string,
   metricType: string,
   value: number,
+  publishedAt: Date = day(1),
 ): MetricRow & { contentType: string } {
-  return { contentId, contentType, metricType, value, measuredAt: day(1), publishedAt: day(1) };
+  return { contentId, contentType, metricType, value, measuredAt: day(1), publishedAt };
 }
 
 function buildPattern(overrides: Partial<Pattern> = {}): Pattern {
@@ -131,5 +132,89 @@ describe('scoreAndRankCandidates', () => {
 
     expect(reachRanking.ranking[0].candidate).toBe('reel');
     expect(likesRanking.ranking[0].candidate).toBe('carousel');
+  });
+
+  describe('freshness (Task 8.4, §12 FRESHNESS_WEIGHT)', () => {
+    const now = day(200); // фиксированная точка отсчёта для возраста данных
+
+    it('labels a candidate whose most recent post is within 90 days as "recent"', () => {
+      const rows: Array<MetricRow & { contentType: string }> = [row('a', 'reel', 'reach', 100, day(150))]; // 50 дней назад
+      const [reachRanking] = scoreAndRankCandidates(['reel'], rows, [], null, now);
+      expect(reachRanking.ranking[0].freshness).toBe('recent');
+    });
+
+    it('labels a candidate whose most recent post is 91-180 days old as "aging"', () => {
+      const rows: Array<MetricRow & { contentType: string }> = [row('a', 'reel', 'reach', 100, day(60))]; // 140 дней назад
+      const [reachRanking] = scoreAndRankCandidates(['reel'], rows, [], null, now);
+      expect(reachRanking.ranking[0].freshness).toBe('aging');
+    });
+
+    it('labels a candidate whose most recent post is over 180 days old as "stale"', () => {
+      const rows: Array<MetricRow & { contentType: string }> = [row('a', 'reel', 'reach', 100, day(1))]; // 199 дней назад
+      const [reachRanking] = scoreAndRankCandidates(['reel'], rows, [], null, now);
+      expect(reachRanking.ranking[0].freshness).toBe('stale');
+    });
+
+    it('uses the MOST RECENT contributing post, not the oldest, when a candidate has several', () => {
+      const rows: Array<MetricRow & { contentType: string }> = [
+        row('a', 'reel', 'reach', 100, day(1)), // старый — 199 дней назад
+        row('b', 'reel', 'reach', 100, day(150)), // свежий — 50 дней назад
+      ];
+      const [reachRanking] = scoreAndRankCandidates(['reel'], rows, [], null, now);
+      expect(reachRanking.ranking[0].freshness).toBe('recent');
+    });
+
+    it('is null (not "stale") when the candidate has no data for the metric at all', () => {
+      const rows: Array<MetricRow & { contentType: string }> = [row('a', 'carousel', 'reach', 100, day(150))];
+      const [reachRanking] = scoreAndRankCandidates(['reel', 'carousel'], rows, [], null, now);
+      const reel = reachRanking.ranking.find((r) => r.candidate === 'reel')!;
+      expect(reel.freshness).toBeNull();
+    });
+  });
+
+  describe('repetition (Task 8.4, §13-14 RECENCY_OVERRIDE/REPETITION_CONTROL)', () => {
+    it('notes a competitive alternative when the top candidate is also the most recently published format', () => {
+      const rows: Array<MetricRow & { contentType: string }> = [
+        // 'image' не входит в candidates — только тянет baseline вниз, как
+        // в реальных данных baseline считается по ВСЕМ форматам (D-0019).
+        ...Array.from({ length: 5 }, (_, i) => row(`image-${i}`, 'image', 'reach', 50)),
+        ...Array.from({ length: 5 }, (_, i) => row(`carousel-${i}`, 'carousel', 'reach', 200)),
+        ...Array.from({ length: 5 }, (_, i) => row(`reel-${i}`, 'reel', 'reach', 300)),
+      ];
+      // baseline = (50*5 + 200*5 + 300*5) / 15 ≈ 183.3
+      // reel: +63.6% → above; carousel: +9.1% → at_baseline (конкурентная)
+      const [reachRanking] = scoreAndRankCandidates(['reel', 'carousel'], rows, [], 'reel');
+      expect(reachRanking.ranking[0].candidate).toBe('reel');
+      expect(reachRanking.ranking[1]).toMatchObject({ candidate: 'carousel', comparison: 'at_baseline' });
+      expect(reachRanking.ranking[0].repetitionNote).toContain('carousel');
+    });
+
+    it('does not note anything when there is no competitive alternative (§14: "тот же формат снова может стать рекомендацией")', () => {
+      const rows: Array<MetricRow & { contentType: string }> = [
+        ...Array.from({ length: 5 }, (_, i) => row(`reel-${i}`, 'reel', 'reach', 300)), // above
+        ...Array.from({ length: 5 }, (_, i) => row(`carousel-${i}`, 'carousel', 'reach', 10)), // below — не конкурентная
+      ];
+      const [reachRanking] = scoreAndRankCandidates(['reel', 'carousel'], rows, [], 'reel');
+      expect(reachRanking.ranking[0].repetitionNote).toBeNull();
+    });
+
+    it('does not note anything when the top candidate is NOT the most recently published format', () => {
+      const rows: Array<MetricRow & { contentType: string }> = [
+        ...Array.from({ length: 5 }, (_, i) => row(`reel-${i}`, 'reel', 'reach', 300)),
+        ...Array.from({ length: 5 }, (_, i) => row(`carousel-${i}`, 'carousel', 'reach', 175)),
+      ];
+      const [reachRanking] = scoreAndRankCandidates(['reel', 'carousel'], rows, [], 'carousel');
+      expect(reachRanking.ranking[0].candidate).toBe('reel');
+      expect(reachRanking.ranking[0].repetitionNote).toBeNull();
+    });
+
+    it('defaults to no repetition note when mostRecentContentType is not provided', () => {
+      const rows: Array<MetricRow & { contentType: string }> = [
+        ...Array.from({ length: 5 }, (_, i) => row(`reel-${i}`, 'reel', 'reach', 300)),
+        ...Array.from({ length: 5 }, (_, i) => row(`carousel-${i}`, 'carousel', 'reach', 175)),
+      ];
+      const [reachRanking] = scoreAndRankCandidates(['reel', 'carousel'], rows, []);
+      expect(reachRanking.ranking[0].repetitionNote).toBeNull();
+    });
   });
 });

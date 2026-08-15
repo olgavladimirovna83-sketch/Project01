@@ -5,7 +5,7 @@ import {
   performanceMetricRepository,
 } from '@/data/repositories';
 import { CORE_METRICS } from '@/analysis/metricsAnalytics';
-import { generateCandidateFormats } from './candidateGenerator';
+import { generateCandidateFormats, mostRecentContentType } from './candidateGenerator';
 import { scoreAndRankCandidates, type MetricRanking } from './candidateScorer';
 import { determineGoalFit, type GoalFitResult } from './goalFit';
 
@@ -15,7 +15,9 @@ import { determineGoalFit, type GoalFitResult } from './goalFit';
  * данных. Task 8.2 — дополнено GOAL_FIRST/GOAL_PRIORITY (21_DECISION_LOGIC.md
  * §6–7): выбирает, какой из уже посчитанных per-metric рейтингов является
  * первичным для целей пользователя (см. goalFit.ts — выбор, не смешивание
- * метрик в одну оценку, прямое следствие D-0024).
+ * метрик в одну оценку, прямое следствие D-0024). Task 8.4 — добавлены
+ * freshness/repetition (`candidateScorer.ts`, §12–14) — этот модуль просто
+ * прокидывает `mostRecentContentType(content)`, сама логика в scorer'е.
  *
  * Сам этот модуль остаётся read-only, как и был в Task 8.1/8.2 —
  * персистентность в `Recommendation` (reasons/context/decision_version,
@@ -42,7 +44,10 @@ async function computeRankings(
     .filter((row) => contentTypeByContentId.has(row.contentId))
     .map((row) => ({ ...row, contentType: contentTypeByContentId.get(row.contentId) as string }));
 
-  return { candidates, rankings: scoreAndRankCandidates(candidates, rowsWithContentType, patterns) };
+  return {
+    candidates,
+    rankings: scoreAndRankCandidates(candidates, rowsWithContentType, patterns, mostRecentContentType(content)),
+  };
 }
 
 export interface DecisionCandidatesResult {

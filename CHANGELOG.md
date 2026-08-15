@@ -139,6 +139,11 @@
 - Task 8.3: `src/app/api/decision/recommendations/route.ts` — `POST` (создаёт, state-changing) + `GET` (читает уже сохранённые, read-only), session-protected
 - Task 8.3: `tests/integration/recommendation-persistence.smoke.test.ts` — 6 тестов против реальной БД
 - D-0026: `RecommendationReason` — отдельная таблица (§28 даёт список колонок), `context` — JSON-снимок (§30 не даёт); запись создаётся только при `goal_matched` (обязательный `goalId`, не выбирается «по умолчанию»); `weight`/`skeletonVersion` сознательно не заполняются (нет расчёта/референта); append-only — YELLOW-решение с обоснованием
+- Task 8.4: `src/decision/candidateGenerator.ts` — `mostRecentContentType(content)`: формат самой недавней публикации по всем форматам (21_DECISION_LOGIC.md §13-14)
+- Task 8.4: `src/decision/candidateScorer.ts` — `CandidateResult.freshness`/`CandidateResult.repetitionNote`: качественные сигналы (§12 FRESHNESS_WEIGHT/§13 RECENCY_OVERRIDE/§14 REPETITION_CONTROL), не влияют на порядок `ranking` (§40, продолжение D-0024/D-0025)
+- Task 8.4: `src/decision/recommendationPersistence.ts` — новая `RecommendationReason(reasonType: 'freshness')`, когда у top-кандидата есть freshness-метка
+- Task 8.4: `tests/unit/candidate-generator.test.ts`/`tests/unit/candidate-scorer.test.ts` — 13 новых тестов (freshness-пороги, самый свежий контрибьютор, repetition с/без конкурентной альтернативы)
+- D-0027: freshness/repetition — качественные сигналы, не переоценка ranking'а; FRESHNESS_WEIGHT НЕ реализован как decay для `computeBaseline` (отдельная будущая ANALYSIS-задача); §13/§14 — один механизм; `repetitionNote` не становится `RecommendationReason` (нет такого слова в словаре §28); risk/opportunity — вне scope, нужен «experimental candidate»/hypothesis status — YELLOW-решение с обоснованием
 
 ### Fixed
 - `INSTAGRAM_API_REVIEW.md` §3: исправлен вывод о permissions после того, как Olga лично прошла реальную авторизацию Instagram — insights оказался отдельным разрешением от `instagram_business_basic`, не его частью, как предполагала исходная версия резюме. Подтверждённый набор: `instagram_business_basic` + insights, comments/messages/content-publish осознанно отключены
@@ -194,6 +199,8 @@
 - Task 8.3: `src/decision/goalFit.ts` — `GoalLike`/`matchedGoal` дополнены `id` (нужен реальный `Goal.id` для `Recommendation.goalId`); `tests/unit/goal-fit.test.ts` — все литералы дополнены `id`
 - Task 8.3: `src/data/repositories/recommendationRepository.ts` — `createWithReasons`/`findByUserId` (новые методы)
 - Task 8.3: `src/decision/README.md` — добавлен раздел про `recommendationPersistence.ts`
+- Task 8.4: `src/decision/recommendationCandidates.ts` — прокидывает `mostRecentContentType(content)` в `scoreAndRankCandidates`
+- Task 8.4: `src/decision/README.md` — добавлен раздел про freshness/repetition
 - **Phase 6 — Analytics Foundation закрыта** (решение Olga, 13 августа 2026) на объёме Task 6.1–6.2 — критерий §34 выполнен; per-metric «anomaly» из §33 сознательно не реализован, зафиксирован как задача Phase 7 (Pattern Detection, `26_DATA_PIPELINE.md` §29–31), не Analytics Foundation, см. `TASKS.md`
 - **Phase 2 — Authentication закрыта** (решение Olga, 12 августа 2026) на объёме Task 2.1–2.3 — критерий `42_IMPLEMENTATION_ROADMAP.md` §11 подтверждён тестами; account recovery/password reset и role model сознательно вне MVP-scope, см. `TASKS.md`
 - D-0001 пересмотрено: исходное решение принято без систематической проверки, переделано по 10-пунктному чек-листу с построчным чтением всех 45 документов (запись поправлена 13 августа 2026 вместе с DECISIONS.md — счётчик «46» был пропущен здесь при первом исправлении)

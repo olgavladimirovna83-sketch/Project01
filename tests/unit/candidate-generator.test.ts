@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { generateCandidateFormats } from '../../src/decision/candidateGenerator';
+import { generateCandidateFormats, mostRecentContentType } from '../../src/decision/candidateGenerator';
 
 describe('generateCandidateFormats', () => {
   it('returns an empty list when there is no content at all', () => {
@@ -22,5 +22,38 @@ describe('generateCandidateFormats', () => {
     const content = [{ contentType: 'carousel' }, { contentType: 'image' }];
     const result = generateCandidateFormats(content);
     expect(result).not.toContain('video');
+  });
+});
+
+const day = (n: number) => new Date(Date.UTC(2026, 0, n));
+
+describe('mostRecentContentType', () => {
+  it('returns null when there is no content at all', () => {
+    expect(mostRecentContentType([])).toBeNull();
+  });
+
+  it('returns null when no content has a publishedAt yet (not synced)', () => {
+    const content = [
+      { contentType: 'reel', publishedAt: null },
+      { contentType: 'carousel', publishedAt: null },
+    ];
+    expect(mostRecentContentType(content)).toBeNull();
+  });
+
+  it('picks the format of the most recently published item, across all formats', () => {
+    const content = [
+      { contentType: 'carousel', publishedAt: day(1) },
+      { contentType: 'reel', publishedAt: day(10) },
+      { contentType: 'image', publishedAt: day(5) },
+    ];
+    expect(mostRecentContentType(content)).toBe('reel');
+  });
+
+  it('ignores items with a missing publishedAt when comparing to items that have one', () => {
+    const content = [
+      { contentType: 'carousel', publishedAt: null },
+      { contentType: 'reel', publishedAt: day(1) },
+    ];
+    expect(mostRecentContentType(content)).toBe('reel');
   });
 });

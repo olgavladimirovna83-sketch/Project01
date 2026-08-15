@@ -15,3 +15,24 @@
 export function generateCandidateFormats(content: Array<{ contentType: string }>): string[] {
   return [...new Set(content.map((item) => item.contentType))];
 }
+
+/**
+ * Task 8.4 — REPETITION_CONTROL/RECENCY_OVERRIDE (`21_DECISION_LOGIC.md`
+ * §13–14): "если пользователь только что использовал определённый
+ * формат" — какой формат был опубликован последним по времени, по всем
+ * форматам разом (не per-metric — это факт о поведении публикации, не о
+ * производительности). `null`, если публикаций нет вовсе, либо ни у
+ * одной нет `publishedAt` (ещё не заполнен ingestion'ом).
+ */
+export function mostRecentContentType(
+  content: Array<{ contentType: string; publishedAt: Date | null }>,
+): string | null {
+  let latest: { contentType: string; publishedAt: Date } | null = null;
+  for (const item of content) {
+    if (item.publishedAt === null) continue;
+    if (latest === null || item.publishedAt.getTime() > latest.publishedAt.getTime()) {
+      latest = { contentType: item.contentType, publishedAt: item.publishedAt };
+    }
+  }
+  return latest?.contentType ?? null;
+}

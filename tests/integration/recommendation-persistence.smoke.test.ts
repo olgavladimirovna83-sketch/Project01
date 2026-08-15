@@ -123,10 +123,16 @@ describe('createRecommendation', () => {
     expect(result.recommendation.status).toBe('generated');
 
     const reasonTypes = result.recommendation.reasons.map((r) => r.reasonType).sort();
-    expect(reasonTypes).toEqual(['baseline', 'goal']);
+    // seedReachContent публикует посты за последние 5 дней — freshness
+    // 'recent' (§12), поэтому Task 8.4 добавляет ещё и 'freshness'-причину.
+    expect(reasonTypes).toEqual(['baseline', 'freshness', 'goal']);
     const goalReason = result.recommendation.reasons.find((r) => r.reasonType === 'goal')!;
     expect(goalReason.description).toContain('reach');
     expect(goalReason.weight).toBeNull(); // §40 NO FALSE PRECISION — вес не придуман
+
+    const freshnessReason = result.recommendation.reasons.find((r) => r.reasonType === 'freshness')!;
+    expect(freshnessReason.description).toContain('recent');
+    expect(freshnessReason.confidence).toBeNull(); // категориальный бакет, не вероятность
 
     const context = result.recommendation.context as Record<string, unknown>;
     expect(context.primaryMetric).toBe('reach');
@@ -140,7 +146,7 @@ describe('createRecommendation', () => {
       include: { reasons: true },
     });
     expect(stored).not.toBeNull();
-    expect(stored?.reasons).toHaveLength(2);
+    expect(stored?.reasons).toHaveLength(3); // goal + baseline + freshness (Task 8.4)
   });
 
   it('creates a distinct pattern reason only when a confirmed pattern agrees with the primary candidate\'s direction', async () => {
