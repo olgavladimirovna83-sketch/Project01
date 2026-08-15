@@ -7,6 +7,6 @@ export { goalRepository } from './goalRepository';
 export { memoryRepository } from './memoryRepository';
 export { patternRepository } from './patternRepository';
 export { performanceMetricRepository } from './performanceMetricRepository';
-export { recommendationRepository } from './recommendationRepository';
+export { recommendationRepository, type RecommendationWithReasons } from './recommendationRepository';
 export { userDecisionRepository } from './userDecisionRepository';
 export { userRepository } from './userRepository';

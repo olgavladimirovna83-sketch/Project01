@@ -40,6 +40,12 @@
  * число = выше важность (ранжированный список §7 — "1. followers" —
  * первый номер, не наибольший вес). Зафиксировано как YELLOW,
  * `DECISIONS.md` D-0025.
+ *
+ * Task 8.3: `GoalLike`/`matchedGoal` дополнены `id` — понадобился
+ * реальный `Goal.id` для обязательного `Recommendation.goalId`
+ * (25_DATABASE_SCHEMA.md §26), когда goal fit перестал быть чисто
+ * read-only (`recommendationPersistence.ts`). Поведение выбора не
+ * изменилось, только состав возвращаемых данных.
  */
 
 const GOAL_TYPE_TO_METRIC: Record<string, string> = {
@@ -54,7 +60,7 @@ export interface GoalFitResult {
    * или null, если goal fit не может быть применён — см. `reason`. */
   primaryMetric: string | null;
   reason: 'goal_matched' | 'no_goals_defined' | 'no_tracked_goals';
-  matchedGoal: { goalType: string; priority: number } | null;
+  matchedGoal: { id: string; goalType: string; priority: number } | null;
   /** goalType целей, которые есть у пользователя, но не сопоставляются ни
    * с одной реально собираемой метрикой — например 'followers'
    * (D-0018). Явный список, не молчаливый пропуск. */
@@ -62,6 +68,10 @@ export interface GoalFitResult {
 }
 
 export interface GoalLike {
+  /** Task 8.3 — нужен для записи Recommendation.goalId (обязательный FK,
+   * 25_DATABASE_SCHEMA.md §26). До Task 8.3 goal fit был read-only и id
+   * не требовался. */
+  id: string;
   goalType: string;
   priority: number;
   status: string;
@@ -87,7 +97,7 @@ export function determineGoalFit(goals: GoalLike[], trackedMetrics: readonly str
     return {
       primaryMetric: metric,
       reason: 'goal_matched',
-      matchedGoal: { goalType: goal.goalType, priority: goal.priority },
+      matchedGoal: { id: goal.id, goalType: goal.goalType, priority: goal.priority },
       untrackedGoals,
     };
   }

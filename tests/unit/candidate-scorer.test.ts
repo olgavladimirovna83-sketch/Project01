@@ -94,6 +94,10 @@ describe('scoreAndRankCandidates', () => {
     const carousel = reachRanking.ranking.find((r) => r.candidate === 'carousel')!;
     expect(reel.label).toContain('already confirmed pattern');
     expect(carousel.label).not.toContain('already confirmed pattern'); // below, but pattern is positive — не совпадает
+    // Task 8.3 — то же самое, но структурно, не через текст label.
+    expect(reel.matchesPattern).toBe(true);
+    expect(carousel.matchesPattern).toBe(false);
+    expect(reachRanking.pattern).toBe(positivePattern);
   });
 
   it('does not attach a pattern note for candidates that are merely at_baseline', () => {

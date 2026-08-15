@@ -17,10 +17,10 @@ import { determineGoalFit, type GoalFitResult } from './goalFit';
  * первичным для целей пользователя (см. goalFit.ts — выбор, не смешивание
  * метрик в одну оценку, прямое следствие D-0024).
  *
- * НЕ пишет в `Recommendation` — это следующий шаг, которому нужны
- * reasons/context/decision_version (`25_DATABASE_SCHEMA.md` §26
- * RECOMMENDATIONS/§28 RECOMMENDATION_REASONS/§30 RECOMMENDATION_CONTEXT —
- * не §36, см. уточнение в TASKS.md/DECISIONS.md D-0024).
+ * Сам этот модуль остаётся read-only, как и был в Task 8.1/8.2 —
+ * персистентность в `Recommendation` (reasons/context/decision_version,
+ * `25_DATABASE_SCHEMA.md` §26/§28/§30) реализована отдельно, поверх этой
+ * функции, в `recommendationPersistence.ts` (Task 8.3), не здесь.
  */
 
 async function computeRankings(
@@ -34,7 +34,7 @@ async function computeRankings(
 
   const candidates = generateCandidateFormats(content);
   if (candidates.length === 0) {
-    return { candidates, rankings: CORE_METRICS.map((metric) => ({ metric, ranking: [] })) };
+    return { candidates, rankings: CORE_METRICS.map((metric) => ({ metric, ranking: [], pattern: null })) };
   }
 
   const contentTypeByContentId = new Map(content.map((item) => [item.id, item.contentType]));

@@ -349,16 +349,47 @@ model Recommendation {
   confidence       Float?
   status           RecommendationStatus @default(generated)
   decisionVersion  String?              @map("decision_version")
+  // Task 8.3 — снимок контекста решения (25_DATABASE_SCHEMA.md §30
+  // RECOMMENDATION_CONTEXT: goal/relevant baseline/active patterns/
+  // confidence/recent performance/skeleton version/decision version).
+  // §30 не даёт фиксированный список колонок (в отличие от §28) и прямо
+  // описывается как "снимок" — единственная запись на recommendation,
+  // не список строк, поэтому JSON-колонка, а не отдельная таблица.
+  context          Json?
   createdAt        DateTime             @default(now()) @map("created_at")
   expiresAt        DateTime?            @map("expires_at")
 
-  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  goal      Goal           @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  user      User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  goal      Goal                   @relation(fields: [goalId], references: [id], onDelete: Cascade)
   decisions UserDecision[]
+  reasons   RecommendationReason[]
 
   @@index([userId])
   @@index([goalId])
   @@map("recommendations")
+}
+
+// Task 8.3 — 25_DATABASE_SCHEMA.md §28 RECOMMENDATION_REASONS. reasonType —
+// String, не enum (тот же принцип, что goalType/patternType/metricType —
+// открытый список категорий, см. комментарий в начале файла); документ
+// перечисляет ориентировочный словарь значений (pattern/performance/
+// baseline/goal/experiment/freshness/opportunity), не закрытый enum.
+// weight — Float?, сознательно не заполняется этой задачей: числового
+// веса причины нет ни у одного из уже посчитанных факторов (Task 8.1
+// D-0024/Task 8.2 D-0025 — придуманный вес запрещён §40 NO FALSE
+// PRECISION), не изобретается здесь только потому, что колонка есть.
+model RecommendationReason {
+  id               String   @id @default(cuid())
+  recommendationId String   @map("recommendation_id")
+  reasonType       String   @map("reason_type")
+  description      String
+  weight           Float?
+  confidence       Float?
+
+  recommendation Recommendation @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
+
+  @@index([recommendationId])
+  @@map("recommendation_reasons")
 }
 
 model UserDecision {
