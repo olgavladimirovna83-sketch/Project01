@@ -171,6 +171,10 @@
 - Task 9.4: `src/app/api/ai/content-suggestions/route.ts` — `POST`, session-protected
 - Task 9.4: `tests/unit/content-suggestion-prompt.test.ts` (3) + `tests/unit/content-suggestion-validation.test.ts` (9) + `tests/integration/content-suggestion.smoke.test.ts` (5, фиктивный `generate`) + `tests/integration/content-suggestion-live.smoke.test.ts` (живой Anthropic API, skip-if-no-credentials)
 - D-0031: `AiRun` обобщена вместо новой таблицы под каждую AI-задачу (§24 сам по себе общий, не Recommendation-специфичный); `basedOn` в выводе AI не сверяется программно с реальными записями — честность содержания на уровне промпта, не валидации — YELLOW-решение с обоснованием
+- Task 9.5: `src/app/content-suggestions/page.tsx` — экран генерации текста (результат Task 9.4), server component, auth-gate, тот же UI-паттерн, что `/integrations`/`/recommendations/[id]`
+- Task 9.5: `src/app/content-suggestions/ContentSuggestionForm.tsx` — client component: форма «тема поста» → `POST /api/ai/content-suggestions`, список вариантов при успехе или честное сообщение при неуспехе; кнопка не нажимается в e2e (реальный внешний AI-вызов)
+- Task 9.5: `src/app/content-suggestions/contentSuggestionStatusMessages.ts` — чистая `formatSuggestionStatusMessage`, честное сообщение под каждый из 6 нестандартных исходов, включая `invalid_topic`/`no_knowledge_available`
+- Task 9.5: `tests/unit/content-suggestion-status-messages.test.ts` (3) + `tests/e2e/content-suggestions.spec.ts` (2, реальный браузер)
 
 ### Fixed
 - `INSTAGRAM_API_REVIEW.md` §3: исправлен вывод о permissions после того, как Olga лично прошла реальную авторизацию Instagram — insights оказался отдельным разрешением от `instagram_business_basic`, не его частью, как предполагала исходная версия резюме. Подтверждённый набор: `instagram_business_basic` + insights, comments/messages/content-publish осознанно отключены
