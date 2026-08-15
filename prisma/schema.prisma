@@ -117,6 +117,7 @@ model User {
   accounts         Account[]
   sessions         Session[]
   externalAccounts ExternalAccount[]
+  aiRuns           AiRun[]
 
   @@map("users")
 }
@@ -435,27 +436,48 @@ model RecommendationReason {
 // (воспроизводимость: модель/версия/prompt/context/evidence/когда).
 // Append-only лог каждого AI-запроса — AI не пишет в Recommendation
 // напрямую (§67/§68), только в собственную лог-таблицу. `output` — Json?,
-// провалидированное структурированное объяснение (§50 DECISION EXPLANATION,
-// 21_DECISION_LOGIC.md) при успехе, либо `{ raw: text }` при
-// validation_failed (для отладки, не выдаётся как настоящее объяснение),
-// либо null при provider-level сбое. `status` — AiRunStatus, закрытый
-// набор, определённый контрактом AIProvider, не документом.
+// провалидированный структурированный результат при успехе, либо
+// `{ raw: text }` при validation_failed (для отладки, не выдаётся как
+// настоящий результат), либо null при provider-level сбое. `status` —
+// AiRunStatus, закрытый набор, определённый контрактом AIProvider, не
+// документом.
+//
+// Task 9.4 — `recommendationId` стал опциональным, добавлены `userId` и
+// `inputContext`. §24 сам по себе не привязывает ai_run к Recommendation —
+// список полей документа общий (run_id/provider/model/prompt_version/
+// input context reference/output/confidence/timestamp/latency/token
+// usage/status), это Task 9.1 (decision explanation) сузила его до
+// Recommendation-специфичного использования. Вторая реальная AI-задача
+// (генерация текста, не привязанная ни к какой Recommendation) показала,
+// что обязательный `recommendationId` был преждевременным сужением — не
+// новая сущность на каждую AI-задачу, один общий лог для любого AI-запроса,
+// как и описано в §24. `userId` добавлен, т.к. без `recommendationId`
+// AI-run иначе был бы полностью анонимным — не с кем связать AI cost/usage
+// (`CLAUDE.md` §11, observability — часть Definition of Done). `inputContext`
+// — буквально пункт документа ("input context reference"), не было
+// реализовано в Task 9.1 (не требовалось: `Recommendation`+`reasons` уже
+// сами по себе полный контекст), нужно для задач без такой готовой записи.
+// См. `DECISIONS.md` D-0031.
 model AiRun {
   id               String      @id @default(cuid())
-  recommendationId String      @map("recommendation_id")
+  recommendationId String?     @map("recommendation_id")
+  userId           String?     @map("user_id")
   provider         String
   model            String
   promptVersion    String      @map("prompt_version")
   status           AiRunStatus
+  inputContext     Json?       @map("input_context")
   output           Json?
   inputTokens      Int?        @map("input_tokens")
   outputTokens     Int?        @map("output_tokens")
   latencyMs        Int?        @map("latency_ms")
   createdAt        DateTime    @default(now()) @map("created_at")
 
-  recommendation Recommendation @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
+  recommendation Recommendation? @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
+  user           User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([recommendationId])
+  @@index([userId])
   @@map("ai_runs")
 }
 

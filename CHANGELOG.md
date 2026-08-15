@@ -164,6 +164,13 @@
 - Task 9.3: `tsx` добавлен как dev-зависимость (запуск standalone TS-скриптов, `npm run seed:content-knowledge`)
 - Task 9.3: `tests/unit/content-knowledge-seed-data.test.ts` (6, без БД) + `tests/integration/content-knowledge.smoke.test.ts` (4, реальная БД, синтетические данные)
 - D-0030: `ContentKnowledge` не привязана к пользователю (внешнее ремесленное знание, не персональная аналитика); имя выбрано шире "WritingGuideline" (материалы не только про текст); сознательно частичная загрузка 130-страничного документа (только Раздел 1), честно зафиксирована; сам AI-код чтения при генерации — не реализован этим шагом (§73, тот же принцип, что D-0028) — YELLOW-решение с обоснованием
+- Task 9.4: `prisma/schema.prisma` — `AiRun` обобщена: `recommendationId` стал опциональным, добавлены `userId` (FK на `User`) и `inputContext` (Json?, §24 "input context reference"); миграция `20260815112339_ai_run_generalize`
+- Task 9.4: `src/ai/contentSuggestionPrompt.ts` — `buildContentSuggestionPrompt`: генерирует хук/заголовок-варианты по теме, используя ТОЛЬКО реально загруженные (Task 9.3) `ContentKnowledge` (по умолчанию `hook_template`+`headline_rule`), прямой запрет придумывать приёмы сверх переданных (§16/§20)
+- Task 9.4: `src/ai/contentSuggestionValidation.ts` — `parseContentSuggestions`: структурная валидация output до персистентности (§11/§26)
+- Task 9.4: `src/ai/contentSuggestion.ts` — `generateContentSuggestions(topic, userId, category?, generate)`: только читает `ContentKnowledge` (§67/§68), честные состояния `invalid_topic`/`no_knowledge_available` без AI-вызова и без `AiRun`
+- Task 9.4: `src/app/api/ai/content-suggestions/route.ts` — `POST`, session-protected
+- Task 9.4: `tests/unit/content-suggestion-prompt.test.ts` (3) + `tests/unit/content-suggestion-validation.test.ts` (9) + `tests/integration/content-suggestion.smoke.test.ts` (5, фиктивный `generate`) + `tests/integration/content-suggestion-live.smoke.test.ts` (живой Anthropic API, skip-if-no-credentials)
+- D-0031: `AiRun` обобщена вместо новой таблицы под каждую AI-задачу (§24 сам по себе общий, не Recommendation-специфичный); `basedOn` в выводе AI не сверяется программно с реальными записями — честность содержания на уровне промпта, не валидации — YELLOW-решение с обоснованием
 
 ### Fixed
 - `INSTAGRAM_API_REVIEW.md` §3: исправлен вывод о permissions после того, как Olga лично прошла реальную авторизацию Instagram — insights оказался отдельным разрешением от `instagram_business_basic`, не его частью, как предполагала исходная версия резюме. Подтверждённый набор: `instagram_business_basic` + insights, comments/messages/content-publish осознанно отключены
@@ -226,6 +233,7 @@
 - Task 9.1: `src/ai/README.md` — добавлен раздел про `decisionExplanation.ts`
 - Task 9.3: `package.json` — новый скрипт `seed:content-knowledge`, `tsx` в devDependencies
 - Task 9.3: `src/data/repositories/index.ts` — добавлен экспорт `contentKnowledgeRepository`
+- Task 9.4: `src/ai/README.md` — добавлен раздел про `contentSuggestion.ts`; `prisma/schema.prisma` `User` — добавлена relation `aiRuns`
 - **Phase 6 — Analytics Foundation закрыта** (решение Olga, 13 августа 2026) на объёме Task 6.1–6.2 — критерий §34 выполнен; per-metric «anomaly» из §33 сознательно не реализован, зафиксирован как задача Phase 7 (Pattern Detection, `26_DATA_PIPELINE.md` §29–31), не Analytics Foundation, см. `TASKS.md`
 - **Phase 2 — Authentication закрыта** (решение Olga, 12 августа 2026) на объёме Task 2.1–2.3 — критерий `42_IMPLEMENTATION_ROADMAP.md` §11 подтверждён тестами; account recovery/password reset и role model сознательно вне MVP-scope, см. `TASKS.md`
 - D-0001 пересмотрено: исходное решение принято без систематической проверки, переделано по 10-пунктному чек-листу с построчным чтением всех 45 документов (запись поправлена 13 августа 2026 вместе с DECISIONS.md — счётчик «46» был пропущен здесь при первом исправлении)
