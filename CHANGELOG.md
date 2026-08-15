@@ -124,12 +124,16 @@
 - **Phase 7 — Knowledge Layer закрыта** (решение Olga, 13 августа 2026) на объёме Task 7.1–7.3 — критерий §39 подтверждён напрямую через `GET /api/knowledge`; §36–38, жизненный цикл Pattern (§17–19) и формальные evidence references (§16/§37) — документированные, но сознательно не реализованные части темы, см. `TASKS.md`
 - Task 8.1: `src/decision/candidateGenerator.ts` — чистая `generateCandidateFormats` (23_SYSTEM_ARCHITECTURE.md §25 CANDIDATE_GENERATOR), кандидаты из реально существующих `Content.contentType`
 - Task 8.1: `src/decision/candidateScorer.ts` — чистая `scoreAndRankCandidates` (§26 CANDIDATE_SCORER/§27 RANKING_ENGINE, 21_DECISION_LOGIC.md §40 NO FALSE PRECISION), первая реализация DECISION layer
-- Task 8.1: `src/decision/recommendationCandidates.ts` — `getRankedCandidates(userId)`, оркестрация, read-only
+- Task 8.1: `src/decision/recommendationCandidates.ts` — `getRankedCandidates(userId)`, оркестрация, read-only (переименована в `getDecisionCandidates` в Task 8.2, см. Changed)
 - Task 8.1: `src/app/api/decision/candidates/route.ts` — `GET`, session-protected
 - Task 8.1: `tests/unit/candidate-generator.test.ts` — 3 теста на синтетических данных
 - Task 8.1: `tests/unit/candidate-scorer.test.ts` — 7 тестов на синтетических данных
 - Task 8.1: `tests/integration/recommendation-candidates.smoke.test.ts` — 3 теста против реальной БД, включая проверку, что `Recommendation` остаётся пустой
 - D-0024: CANDIDATE_SCORER реализует 3 из 9 документированных факторов; ranking раздельно по метрике, не единым списком; Pattern — контекст, не фактор ранжирования — YELLOW-решение с обоснованием
+- Task 8.2: `src/decision/goalFit.ts` — чистая `determineGoalFit` (21_DECISION_LOGIC.md §6 GOAL_FIRST/§7 GOAL_PRIORITY): выбирает, какой из per-metric рейтингов Task 8.1 первичен для целей пользователя — выбор, не смешивание метрик в общую оценку (прямое продолжение D-0024)
+- Task 8.2: `tests/unit/goal-fit.test.ts` — 9 тестов на синтетических данных (нет целей, только неактивные цели, alias `saves`→`saved`, приоритет по меньшему числу, нетрекаемая цель `followers`, fallthrough на менее приоритетную трекаемую цель, несколько нетрекаемых целей разом, игнорирование неактивных целей)
+- Task 8.2: `tests/integration/recommendation-candidates.smoke.test.ts` — дополнен 3 новыми тестами против реальной БД (goal `reach` → `primaryRanking` заполнен; только `followers` → `no_tracked_goals`; `followers`+`reach` разных приоритетов → fallthrough выбирает `reach`), итого 6
+- D-0025: goal fit — механизм выбора, не смешивания; `Goal.priority` — меньшее число важнее (впервые устанавливаемая конвенция, по примеру §7); `GOAL_TYPE_TO_METRIC` — явное сопоставление словоупотребления документа (`saves`) и реального имени метрики (`saved`, D-0018) и явный пробел `followers` (не собирается, D-0018); честные состояния `no_goals_defined`/`no_tracked_goals` вместо молчаливого предположения — YELLOW-решение с обоснованием
 
 ### Fixed
 - `INSTAGRAM_API_REVIEW.md` §3: исправлен вывод о permissions после того, как Olga лично прошла реальную авторизацию Instagram — insights оказался отдельным разрешением от `instagram_business_basic`, не его частью, как предполагала исходная версия резюме. Подтверждённый набор: `instagram_business_basic` + insights, comments/messages/content-publish осознанно отключены
@@ -177,6 +181,10 @@
 - Task 7.2: `src/data/repositories/performanceMetricRepository.ts` — `findRowsByUserId` (join через `Content.userId`, не через `ExternalAccount` — `Pattern` не привязан к конкретному внешнему аккаунту)
 - Task 7.2: `src/knowledge/analyticsMemory.ts` — `CONFIDENCE_SCORE` экспортирована, переиспользуется `patternDetection.ts`
 - Task 8.1: `src/data/repositories/contentRepository.ts` — `findByUserId` (раньше не было метода чтения по пользователю)
+- Task 8.2: `src/data/repositories/goalRepository.ts` — `findByUserId` (первое реальное использование `Goal` за пределами базового CRUD/auth-тестов)
+- Task 8.2: `src/decision/recommendationCandidates.ts` — `getRankedCandidates` переименована в `getDecisionCandidates`, возвращает `{ goalFit, rankings, primaryRanking }` вместо голого массива рейтингов; старый экспорт удалён полностью, не оставлен как совместимость-шим
+- Task 8.2: `src/app/api/decision/candidates/route.ts` — ответ дополнен `goalFit`/`primaryRanking` наравне с `rankings`
+- Task 8.2: `src/decision/README.md` — добавлен раздел про `goalFit.ts`
 - **Phase 6 — Analytics Foundation закрыта** (решение Olga, 13 августа 2026) на объёме Task 6.1–6.2 — критерий §34 выполнен; per-metric «anomaly» из §33 сознательно не реализован, зафиксирован как задача Phase 7 (Pattern Detection, `26_DATA_PIPELINE.md` §29–31), не Analytics Foundation, см. `TASKS.md`
 - **Phase 2 — Authentication закрыта** (решение Olga, 12 августа 2026) на объёме Task 2.1–2.3 — критерий `42_IMPLEMENTATION_ROADMAP.md` §11 подтверждён тестами; account recovery/password reset и role model сознательно вне MVP-scope, см. `TASKS.md`
 - D-0001 пересмотрено: исходное решение принято без систематической проверки, переделано по 10-пунктному чек-листу с построчным чтением всех 45 документов (запись поправлена 13 августа 2026 вместе с DECISIONS.md — счётчик «46» был пропущен здесь при первом исправлении)

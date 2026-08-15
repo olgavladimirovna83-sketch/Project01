@@ -1,18 +1,31 @@
-import { contentRepository, patternRepository, performanceMetricRepository } from '@/data/repositories';
+import {
+  contentRepository,
+  goalRepository,
+  patternRepository,
+  performanceMetricRepository,
+} from '@/data/repositories';
 import { CORE_METRICS } from '@/analysis/metricsAnalytics';
 import { generateCandidateFormats } from './candidateGenerator';
 import { scoreAndRankCandidates, type MetricRanking } from './candidateScorer';
+import { determineGoalFit, type GoalFitResult } from './goalFit';
 
 /**
- * Task 8.1 — тонкая оркестрация: CANDIDATE_GENERATOR → CANDIDATE_SCORER →
- * RANKING_ENGINE (23_SYSTEM_ARCHITECTURE.md §25–27), полностью на уже
- * сохранённых данных. НЕ пишет в `Recommendation` — это следующий шаг,
- * которому нужны reasons/context/decision_version
- * (`25_DATABASE_SCHEMA.md` §26 RECOMMENDATIONS/§28 RECOMMENDATION_REASONS/
- * §30 RECOMMENDATION_CONTEXT — не §36, см. уточнение в TASKS.md/DECISIONS.md).
+ * Task 8.1 — CANDIDATE_GENERATOR → CANDIDATE_SCORER → RANKING_ENGINE
+ * (23_SYSTEM_ARCHITECTURE.md §25–27), полностью на уже сохранённых
+ * данных. Task 8.2 — дополнено GOAL_FIRST/GOAL_PRIORITY (21_DECISION_LOGIC.md
+ * §6–7): выбирает, какой из уже посчитанных per-metric рейтингов является
+ * первичным для целей пользователя (см. goalFit.ts — выбор, не смешивание
+ * метрик в одну оценку, прямое следствие D-0024).
+ *
+ * НЕ пишет в `Recommendation` — это следующий шаг, которому нужны
+ * reasons/context/decision_version (`25_DATABASE_SCHEMA.md` §26
+ * RECOMMENDATIONS/§28 RECOMMENDATION_REASONS/§30 RECOMMENDATION_CONTEXT —
+ * не §36, см. уточнение в TASKS.md/DECISIONS.md D-0024).
  */
 
-export async function getRankedCandidates(userId: string): Promise<MetricRanking[]> {
+async function computeRankings(
+  userId: string,
+): Promise<{ candidates: string[]; rankings: MetricRanking[] }> {
   const [content, metricRows, patterns] = await Promise.all([
     contentRepository.findByUserId(userId),
     performanceMetricRepository.findRowsByUserId(userId),
@@ -21,7 +34,7 @@ export async function getRankedCandidates(userId: string): Promise<MetricRanking
 
   const candidates = generateCandidateFormats(content);
   if (candidates.length === 0) {
-    return CORE_METRICS.map((metric) => ({ metric, ranking: [] }));
+    return { candidates, rankings: CORE_METRICS.map((metric) => ({ metric, ranking: [] })) };
   }
 
   const contentTypeByContentId = new Map(content.map((item) => [item.id, item.contentType]));
@@ -29,5 +42,28 @@ export async function getRankedCandidates(userId: string): Promise<MetricRanking
     .filter((row) => contentTypeByContentId.has(row.contentId))
     .map((row) => ({ ...row, contentType: contentTypeByContentId.get(row.contentId) as string }));
 
-  return scoreAndRankCandidates(candidates, rowsWithContentType, patterns);
+  return { candidates, rankings: scoreAndRankCandidates(candidates, rowsWithContentType, patterns) };
+}
+
+export interface DecisionCandidatesResult {
+  goalFit: GoalFitResult;
+  rankings: MetricRanking[];
+  /** Ranking, соответствующий метрике, выбранной goal fit — удобный
+   * short-cut, чтобы не искать его в `rankings` по имени metric. `null`,
+   * если goal fit не смог выбрать метрику (см. `goalFit.reason`). */
+  primaryRanking: MetricRanking | null;
+}
+
+export async function getDecisionCandidates(userId: string): Promise<DecisionCandidatesResult> {
+  const [{ rankings }, goals] = await Promise.all([
+    computeRankings(userId),
+    goalRepository.findByUserId(userId),
+  ]);
+
+  const goalFit = determineGoalFit(goals, CORE_METRICS);
+  const primaryRanking = goalFit.primaryMetric
+    ? (rankings.find((ranking) => ranking.metric === goalFit.primaryMetric) ?? null)
+    : null;
+
+  return { goalFit, rankings, primaryRanking };
 }
