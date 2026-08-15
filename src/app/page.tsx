@@ -11,8 +11,8 @@ export default async function HomePage() {
       <p>Phase 0 — foundation. UI появится по мере реализации слоёв (см. TASKS.md).</p>
       {session?.user ? (
         <p>
-          Вы вошли как {session.user.email}. <Link href="/integrations">Интеграции</Link>.{' '}
-          <LogoutButton />
+          Вы вошли как {session.user.email}. <Link href="/goals">Цели</Link> ·{' '}
+          <Link href="/integrations">Интеграции</Link>. <LogoutButton />
         </p>
       ) : (
         <p>

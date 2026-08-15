@@ -37,7 +37,10 @@ export default function RegisterPage() {
       return;
     }
 
-    router.push('/');
+    // Task 10.1 — новый пользователь закономерно попадает на постановку
+    // целей, а не находит её случайно: без активной цели GOAL_FIRST
+    // (Task 8.2) не может выбрать первичную метрику для рекомендаций.
+    router.push('/goals');
     router.refresh();
   }
 

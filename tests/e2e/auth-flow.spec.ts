@@ -36,6 +36,10 @@ test.describe('registration / login / logout — full HTTP session cycle', () =>
     expect(me.status()).toBe(200);
     expect((await me.json()).email).toBe(email);
 
+    // Task 10.1 — регистрация теперь ведёт на /goals, у которой нет своей
+    // кнопки выхода (та есть только на "/", тот же принцип, что
+    // /integrations/content-suggestions уже не имели её раньше).
+    await page.goto('/');
     await page.getByRole('button', { name: 'Выйти' }).click();
     await expect(page.getByRole('link', { name: 'Войти' })).toBeVisible();
 
@@ -48,6 +52,7 @@ test.describe('registration / login / logout — full HTTP session cycle', () =>
     const password = 'correct horse battery staple';
 
     await registerAndLogin(page, email, password);
+    await page.goto('/');
     await page.getByRole('button', { name: 'Выйти' }).click();
     await expect(page.getByRole('link', { name: 'Войти' })).toBeVisible();
 
@@ -66,6 +71,7 @@ test.describe('registration / login / logout — full HTTP session cycle', () =>
     const password = 'correct horse battery staple';
 
     await registerAndLogin(page, email, password);
+    await page.goto('/');
     await page.getByRole('button', { name: 'Выйти' }).click();
     await expect(page.getByRole('link', { name: 'Войти' })).toBeVisible();
 

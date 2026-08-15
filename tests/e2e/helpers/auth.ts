@@ -16,5 +16,9 @@ export async function registerAndLogin(page: Page, email: string, password: stri
   await page.getByLabel('Email').fill(email);
   await page.getByLabel('Пароль').fill(password);
   await page.getByRole('button', { name: 'Создать аккаунт' }).click();
-  await expect(page.getByText(`Вы вошли как ${email}`)).toBeVisible();
+  // Task 10.1 — регистрация теперь ведёт на /goals, не на / (GOAL_FIRST
+  // требует хотя бы одну активную цель, прежде чем Recommendation/Decision
+  // заработают содержательно) — заголовок экрана целей как признак того,
+  // что сессия реально установлена и редирект отработал.
+  await expect(page.getByRole('heading', { name: 'Цели' })).toBeVisible();
 }
